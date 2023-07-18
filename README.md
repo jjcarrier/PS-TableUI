@@ -1,5 +1,7 @@
 # TableUI PowerShell Module
 
+![PSGallery](https://img.shields.io/powershellgallery/p/TableUI)
+
 ## Description
 
 This is a simple, no frills UI that accepts an array of objects and displays
