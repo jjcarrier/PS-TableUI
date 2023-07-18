@@ -9,12 +9,12 @@
 
     # CompatiblePSEditions = @()
     # PowerShellVersion = ''
-    # RequiredModules = @()
     # ScriptsToProcess = @()
     # TypesToProcess = @()
     # FormatsToProcess = @()
     # NestedModules = @()
 
+    RequiredModules = @(@{ModuleName = 'TextTable'; ModuleVersion = '1.0.1';})
     FunctionsToExport = @('Show-TableUI')
     CmdletsToExport = @()
     VariablesToExport = '*'
@@ -36,8 +36,8 @@
             # ReleaseNotes = ''
             # Prerelease = ''
             # RequireLicenseAcceptance = $false
-            # ExternalModuleDependencies = @('TextTable')
 
+            ExternalModuleDependencies = @('TextTable')
         } # End of PSData hashtable
 
     } # End of PrivateData hashtable
