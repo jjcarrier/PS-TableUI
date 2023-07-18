@@ -1,6 +1,6 @@
 @{
     RootModule = 'TableUI.psm1'
-    ModuleVersion = '1.0'
+    ModuleVersion = '1.0.1'
     GUID = 'b5eb9ef8-a2ef-40d4-a8d5-46d91ab7060e'
     Author = 'Jon Carrier'
     CompanyName = 'Unknown'
@@ -15,18 +15,21 @@
     # FormatsToProcess = @()
     # NestedModules = @()
 
-    FunctionsToExport = @()
-    CmdletsToExport = @('Show-TableUI')
+    FunctionsToExport = @('Show-TableUI')
+    CmdletsToExport = @()
     VariablesToExport = '*'
     AliasesToExport = @()
 
     # ModuleList = @()
-    # FileList = @()
+    FileList = @(
+        'TableUI.psd1',
+        'TableUI.psm1'
+    )
 
     PrivateData = @{
 
         PSData = @{
-            Tags = @('Table', 'Selection', 'UI')
+            Tags = @('Windows', 'MacOS', 'Linux', 'Table', 'Selection', 'UI')
             LicenseUri = 'https://github.com/jjcarrier/PS-TableUI/blob/main/LICENSE'
             ProjectUri = 'https://github.com/jjcarrier/PS-TableUI'
             # IconUri = ''
