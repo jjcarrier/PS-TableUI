@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+
+  # Allow manually triggering of the workflow.
+  workflow_dispatch: {}
+
+env:
+  MODULE_NAME: TableUI
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -ErrorAction Stop
+
+      - name: Lint with PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Invoke-ScriptAnalyzer -Path "$env:MODULE_NAME/$env:MODULE_NAME.psm1" -Recurse -Outvariable issues
+          $errors   = $issues.Where({$_.Severity -eq 'Error'})
+          $warnings = $issues.Where({$_.Severity -eq 'Warning'})
+          if ($errors) {
+              Write-Error "There were $($errors.Count) errors and $($warnings.Count) warnings total." -ErrorAction Stop
+          } else {
+              Write-Output "There were $($errors.Count) errors and $($warnings.Count) warnings total."
+          }
+
+      - name: Test Manifest
+        shell: pwsh
+        run: |
+          Test-ModuleManifest "$env:MODULE_NAME/$env:MODULE_NAME.psd1" -Verbose
+          if (-not($?)) {
+              Write-Error "Manifest validation failed." -ErrorAction Stop
+          }
