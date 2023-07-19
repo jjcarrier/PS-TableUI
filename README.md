@@ -8,9 +8,10 @@ This is a simple, no frills UI that accepts an array of objects and displays
 each entry in interactive list where the user can make selections for an
 underlying operation.
 
-The original scope of this tool was to provide a simple UI for selecting what
-upgradable packages to install for `winget update` but has been expanded on
-to be more general purpose.
+> **Note**
+> The original scope of this tool was to provide a simple UI for selecting what
+ upgradable packages to install for `winget update` but has been expanded on
+ to be more general purpose.
 
 ## Installation
 
@@ -60,18 +61,29 @@ $selections = @()
 Show-TableUI -Table $tableData -Selections ([ref]$selections)
 ```
 
+![Test Example](img/test-ui.png)
+
 Here is an example of interfacing WinGet update with TableUI utilizing
 `ConvertFrom-TextTable` module (also available in PSGallery).
 
 ```pwsh
+Install-Module -Name TextTable -Repository PSGallery
+Import-Module TextTable
+
 $selections = @()
 $tableData = winget update | ConvertFrom-TextTable
-Show-TableUI -Table $tableData -Selections ([ref]$selections)
+Show-TableUI -Table $tableData -DefaultMemberToShow Name -Selections ([ref]$selections)
 ```
+
+![WinGet Example](img/winget-update-ui.png)
 
 ## Selection Details Script Block
 
 A custom handler may be defined for the `ENTER` key by specifying the `-EnterKeyScript` parameter.
-The assigned script block takes two parameters, the first is the array indicating the current
-selections (passed by value). The second parameter is the currently selected index. Full access to
-the currently selected object and other selections can be realized with appropriate scoping.
+
+The assigned script block takes two parameters.
+
+The first parameter is the array indicating the current selections (passed by value).
+
+The second parameter is the currently selected index. Full access to the currently selected object
+and other selections may be realized with appropriate scoping.
