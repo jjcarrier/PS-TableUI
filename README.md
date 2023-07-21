@@ -8,7 +8,7 @@ This is a simple, no frills UI that accepts an array of objects and displays
 each entry in interactive list where the user can make selections for an
 underlying operation.
 
-> **Note**
+> [!NOTE]\
 > The original scope of this tool was to provide a simple UI for selecting what
  upgradable packages to install for `winget update` but has been expanded on
  to be more general purpose.
