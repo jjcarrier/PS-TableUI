@@ -231,7 +231,7 @@ function Show-TableUI
         Show-SelectionMenuControls -EnterKeyDescription $EnterKeyDescription
         Show-SelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
 
-        $key = $host.ui.RawUI.ReadKey()
+        $key = $host.ui.RawUI.ReadKey('NoEcho,IncludeKeyDown')
         if ($key.ControlKeyState.HasFlag([System.Management.Automation.Host.ControlKeyStates]::LeftCtrlPressed) -or
             $key.ControlKeyState.HasFlag([System.Management.Automation.Host.ControlKeyStates]::RightCtrlPressed))
         {
