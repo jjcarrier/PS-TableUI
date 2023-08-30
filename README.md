@@ -5,13 +5,13 @@
 ## Description
 
 This is a simple, no frills UI that accepts an array of objects and displays
-each entry in interactive list where the user can make selections for an
+each entry in an interactive list where the user can make selections for an
 underlying operation.
 
 > [!NOTE]\
 > The original scope of this tool was to provide a simple UI for selecting what
  upgradable packages to install for `winget update` but has been expanded on
- to be more general purpose.
+ to be more general purpose. There is likely room for improvement.
 
 ## Installation
 
