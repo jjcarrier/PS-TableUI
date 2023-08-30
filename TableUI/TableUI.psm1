@@ -221,7 +221,7 @@ function Show-TableUI
 
     while ($currentKey -ne $continue)
     {
-        [int]$numStandardMenuLines = 22 # Count is based on 'Show-' calls below
+        [int]$numStandardMenuLines = 18 + $SelectedItemMembersToShow.Count # Count is based on 'Show-' calls below
         [int]$windowedSpan = $Host.UI.RawUI.WindowSize.Height - $numStandardMenuLines
         if ($windowedSpan -le 0) { $windowedSpan = 1 }
 
