@@ -44,8 +44,9 @@ function Show-TableUI
         [string]$DefaultMemberToShow,
 
         # These are the members to show when an item is currenlty selected. Order determines arrangement in UI.
+        # If not specified, all (NoteProperty) members will be displayed.
         [Parameter()]
-        [string[]]$SelectedItemMembersToShow = @("Name","Id","Version","Available"),
+        [string[]]$SelectedItemMembersToShow = $null,
 
         # The decription of what the ENTER key does. Should be filled to 60-characters.
         [Parameter()]
@@ -212,6 +213,11 @@ function Show-TableUI
     $Selections.Value = @($Table) | ForEach-Object { $false }
     [int]$selectionIndex = 0
     [int]$windowStartIndex = 0
+
+    if ($null -eq $SelectedItemMembersToShow)
+    {
+        $SelectedItemMembersToShow = ($Table[0] | Get-Member -MemberType NoteProperty).Name
+    }
 
     while ($currentKey -ne $continue)
     {
