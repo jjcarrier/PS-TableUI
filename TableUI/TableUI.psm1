@@ -19,7 +19,7 @@ $DummyScriptBlock = {
 .DESCRIPTION
     Shows a user-interface based on an array of objects. This interface allows
     a user to select zero or more items from this selection. The provided
-    reference is updated with an array of booleans indicating which items in
+    reference is updated with an array of Booleans indicating which items in
     the array were selected.
 #>
 function Show-TableUI
@@ -30,7 +30,7 @@ function Show-TableUI
         [Parameter(Mandatory)]
         [PSCustomObject[]]$Table,
 
-        # An array of booleans indicating which items were selected.
+        # An array of Booleans indicating which items were selected.
         # IMPORTANT: This array will be set to $null if the user aborts the selection.
         [Parameter(Mandatory)]
         [ref]$Selections,
@@ -50,7 +50,7 @@ function Show-TableUI
 
         # The decription of what the ENTER key does. Should be filled to 60-characters.
         [Parameter()]
-        [string]$EnterKeyDescription = "Press ENTER to show selection details.                      ",
+        [string]$EnterKeyDescription = 'Press ENTER to show selection details.                      ',
 
         # The script to execute whenn the ENNTER key is pressed. After completion, the screen will be redrawn by the TableUI.
         [Parameter()]
@@ -137,9 +137,9 @@ function Show-TableUI
         )
 
         Clear-Host
-        Write-Output "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
         Write-Output "$Title"
-        Write-Output "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
 
         for ($i = 0; $i -lt $SelectionItems.Count; $i++)
         {
@@ -168,9 +168,9 @@ function Show-TableUI
             [string[]]$MembersToShow
         )
 
-        Write-Output "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
         Write-Output "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
-        Write-Output "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
         if ($null -eq $MembersToShow) {
             $MembersToShow = $SelectionItems[$SelectionIndex] | Get-Member -MemberType NoteProperty | ForEach-Object { $_.$DefaultMemberToShow }
         }
@@ -186,22 +186,22 @@ function Show-TableUI
     {
         param (
             # Decription should be filled to 60-characters.
-            [string]$EnterKeyDescription = "Press ENTER to show selection details.                      "
+            [string]$EnterKeyDescription = 'Press ENTER to show selection details.                      '
         )
-        Write-Output "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
         Set-BackgroundColor DarkGray
-        Write-ColorOutput White "Press (PAGE) UP or (PAGE) DOWN to navigate selection.       "
-        Write-ColorOutput White "Press SPACE to toggle selection.                            "
-        Write-ColorOutput White "Press 'A' to select all.                                    "
-        Write-ColorOutput White "Press 'N' to select none.                                   "
+        Write-ColorOutput White 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.       '
+        Write-ColorOutput White 'Press SPACE to toggle selection.                            '
+        Write-ColorOutput White 'Press 'A' to select all.                                    '
+        Write-ColorOutput White 'Press 'N' to select none.                                   '
         Write-ColorOutput White $EnterKeyDescription
-        Write-ColorOutput White "Press 'C' to finish selections and continue operation.      "
-        Write-ColorOutput White "Press ESC or 'Q' to quit now and cancel operation.          "
+        Write-ColorOutput White 'Press 'C' to finish selections and continue operation.      '
+        Write-ColorOutput White 'Press ESC or 'Q' to quit now and cancel operation.          '
         Restore-BackgroundColor
     }
 
     if ([string]::IsNullOrWhiteSpace($DefaultMemberToShow)) {
-        $DefaultMemberToShow = ($Table[0] | Get-Member -MemberType NoteProperty)[0].Name
+        $DefaultMemberToShow = $Table | Select-Object -First | Get-Member -MemberType NoteProperty | Select-Object -First -Property Name
     }
 
     [char]$currentKey = [char]0
