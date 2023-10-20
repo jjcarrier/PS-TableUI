@@ -18,9 +18,10 @@ $DummyScriptBlock = {
 <#
 .DESCRIPTION
     Shows a user-interface based on an array of objects. This interface allows
-    a user to select zero or more items from this selection. The provided
-    reference is updated with an array of Booleans indicating which items in
-    the array were selected.
+    a user to select zero or more items from this selection. By default, the
+    provided reference is updated with an array of Booleans indicating which
+    items in the array were selected. This format can be change to indicate
+    the selected index or item values via the -SelectionFormat option.
 #>
 function Show-TableUI
 {
@@ -54,7 +55,12 @@ function Show-TableUI
 
         # The script to execute whenn the ENNTER key is pressed. After completion, the screen will be redrawn by the TableUI.
         [Parameter()]
-        [scriptblock]$EnterKeyScript = $DummyScriptBlock
+        [scriptblock]$EnterKeyScript = $DummyScriptBlock,
+
+        # Specifies the format that the -Selections should be in. The default is an array of Booleans.
+        [Parameter()]
+        [ArgumentCompletions('Booleans', 'Indices', 'Items')]
+        [string]$SelectionFormat = 'Booleans'
     )
 
     <#
@@ -311,6 +317,41 @@ function Show-TableUI
             $windowStartIndex = $selectionIndex
         } elseif ($selectionIndex - $windowStartIndex -ge $windowedSpan) {
             $windowStartIndex = $selectionIndex - $windowedSpan + 1
+        }
+    }
+
+    if ($null -eq $Selections.Value) {
+        return
+    }
+
+    $transformSelectionScript = $null
+
+    switch ($SelectionFormat)
+    {
+        { $_ -eq 'Indices' } {
+            $transformSelectionScript = {
+                param($index, $item, $selected)
+                if ($selected) {
+                    $index
+                }
+            }
+        }
+
+        { $_ -eq 'Items' } {
+            $transformSelectionScript = {
+                param($index, $item, $selected)
+                if ($selected) {
+                    $item
+                }
+            }
+        }
+    }
+
+    if ($null -ne $transformSelectionScript) {
+        $index = 0
+        $Selections.Value = $Selections.Value | ForEach-Object {
+            Invoke-Command -ScriptBlock $transformSelectionScript -ArgumentList $index, $tableData[$index], $_
+            $index++
         }
     }
 }
