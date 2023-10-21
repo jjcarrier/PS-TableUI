@@ -5,7 +5,7 @@ $DummyScriptBlock = {
     param($currentSelections, $selectedIndex)
 
     Clear-Host
-    Write-Output  "The currenntly selected index is: $selectedIndex"
+    Write-Output  "The currently selected index is: $selectedIndex"
     Write-Output "`n[Press ENTER to return.]"
     [Console]::CursorVisible = $false
     $cursorPos = $host.UI.RawUI.CursorPosition
@@ -95,7 +95,10 @@ function Show-TableUI
     {
         param (
             # The foreground color to apply.
-            [System.ConsoleColor]$ForegroundColor
+            [System.ConsoleColor]$ForegroundColor,
+
+            # Indicates that no new line should be added at the end of the message.
+            [switch]$NoNewLine
         )
         # Save the current color
         $fc = $host.UI.RawUI.ForegroundColor
@@ -104,9 +107,9 @@ function Show-TableUI
         $host.UI.RawUI.ForegroundColor = $ForegroundColor
 
         if ($args) {
-            Write-Output $args
+            Write-Host -NoNewLine:$NoNewLine $args
         } else {
-            $input | Write-Output
+            $input | Write-Host -NoNewLine:$NoNewLine
         }
 
         # Restore the original color
@@ -143,9 +146,9 @@ function Show-TableUI
         )
 
         Clear-Host
-        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+        Write-Output '────────────────────────────────────────────────────────────'
         Write-Output "$Title"
-        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+        Write-Output '────────────────────────────────────────────────────────────'
 
         for ($i = 0; $i -lt $SelectionItems.Count; $i++)
         {
@@ -174,14 +177,20 @@ function Show-TableUI
             [string[]]$MembersToShow
         )
 
-        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+        Write-Output '────────────────────────────────────────────────────────────'
         Write-Output "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
-        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+        Write-Output '────────────────────────────────────────────────────────────'
         if ($null -eq $MembersToShow) {
             $MembersToShow = $SelectionItems[$SelectionIndex] | Get-Member -MemberType NoteProperty | ForEach-Object { $_.$DefaultMemberToShow }
         }
 
-        $SelectionItems[$SelectionIndex] | Format-List -Property $MembersToShow
+        $maxMemberName = ($MembersToShow | Measure-Object -Property Length -Maximum).Maximum + 1
+        $MembersToShow | ForEach-Object {
+            if (-not([string]::IsNullOrWhiteSpace(($SelectionItems[$SelectionIndex].$_)))) {
+                Write-ColorOutput Green -NoNewLine  "$_$(' ' * ($maxMemberName - $_.Length)): "
+                Write-ColorOutput Gray ($SelectionItems[$SelectionIndex].$_ -join ', ')
+            }
+        }
     }
 
     <#
@@ -194,15 +203,15 @@ function Show-TableUI
             # Decription should be filled to 60-characters.
             [string]$EnterKeyDescription = 'Press ENTER to show selection details.                      '
         )
-        Write-Output '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+
+        Write-Output '────────────────────────────────────────────────────────────'
         Set-BackgroundColor DarkGray
         Write-ColorOutput White 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.       '
-        Write-ColorOutput White 'Press SPACE to toggle selection.                            '
-        Write-ColorOutput White 'Press 'A' to select all.                                    '
-        Write-ColorOutput White 'Press 'N' to select none.                                   '
         Write-ColorOutput White $EnterKeyDescription
-        Write-ColorOutput White 'Press 'C' to finish selections and continue operation.      '
-        Write-ColorOutput White 'Press ESC or 'Q' to quit now and cancel operation.          '
+        Write-ColorOutput White 'Press SPACE to toggle selection.                            '
+        Write-ColorOutput White "Press 'A' to select all, 'N' to select none.                "
+        Write-ColorOutput White "Press 'C' to finish selections and continue operation.      "
+        Write-ColorOutput White "Press ESC or 'Q' to quit now and cancel operation.          "
         Restore-BackgroundColor
     }
 
@@ -227,7 +236,7 @@ function Show-TableUI
 
     while ($currentKey -ne $continue)
     {
-        [int]$numStandardMenuLines = 18 + $SelectedItemMembersToShow.Count # Count is based on 'Show-' calls below
+        [int]$numStandardMenuLines = 14 + $SelectedItemMembersToShow.Count # Count is based on 'Show-' calls below
         [int]$windowedSpan = $Host.UI.RawUI.WindowSize.Height - $numStandardMenuLines
         if ($windowedSpan -le 0) { $windowedSpan = 1 }
 
