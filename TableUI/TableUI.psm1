@@ -201,17 +201,27 @@ function Show-TableUI
     {
         param (
             # Decription should be filled to 60-characters.
-            [string]$EnterKeyDescription = 'Press ENTER to show selection details.                      '
+            [string]$EnterKeyDescription = 'Press ENTER to show selection details.                      ',
+
+            # When set, only the help key is shown
+            [switch]$Minimize
         )
 
         Write-Output '────────────────────────────────────────────────────────────'
         Set-BackgroundColor DarkGray
-        Write-ColorOutput White 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.       '
-        Write-ColorOutput White $EnterKeyDescription
-        Write-ColorOutput White 'Press SPACE to toggle selection.                            '
-        Write-ColorOutput White "Press 'A' to select all, 'N' to select none.                "
-        Write-ColorOutput White "Press 'C' to finish selections and continue operation.      "
-        Write-ColorOutput White "Press ESC or 'Q' to quit now and cancel operation.          "
+
+        if ($Minimize) {
+            Write-ColorOutput White "Press '?' to show the controls control menu.                "
+        } else {
+            Write-ColorOutput White 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.       '
+            Write-ColorOutput White $EnterKeyDescription
+            Write-ColorOutput White 'Press SPACE to toggle selection.                            '
+            Write-ColorOutput White "Press 'A' to select all, 'N' to select none.                "
+            Write-ColorOutput White "Press 'C' to finish selections and continue operation.      "
+            Write-ColorOutput White "Press '?' to minimize this control menu.                    "
+            Write-ColorOutput White "Press ESC or 'Q' to quit now and cancel operation.          "
+        }
+
         Restore-BackgroundColor
     }
 
@@ -224,10 +234,13 @@ function Show-TableUI
     [char]$selectNone ='n'
     [char]$continue = 'c'
     [char]$quitKey = 'q'
+    [char]$helpKey = '?'
+    [char]$helpKeyAlt = '/'
 
     $Selections.Value = @($Table) | ForEach-Object { $false }
     [int]$selectionIndex = 0
     [int]$windowStartIndex = 0
+    $helpMinimized = $false
 
     if ($null -eq $SelectedItemMembersToShow)
     {
@@ -236,7 +249,11 @@ function Show-TableUI
 
     while ($currentKey -ne $continue)
     {
-        [int]$numStandardMenuLines = 14 + $SelectedItemMembersToShow.Count # Count is based on 'Show-' calls below
+        [int]$numStandardMenuLines = 15 + $SelectedItemMembersToShow.Count # Count is based on 'Show-' calls below
+        if ($helpMinimized) {
+            $numStandardMenuLines -= 6
+        }
+
         [int]$windowedSpan = $Host.UI.RawUI.WindowSize.Height - $numStandardMenuLines
         if ($windowedSpan -le 0) { $windowedSpan = 1 }
 
@@ -249,7 +266,7 @@ function Show-TableUI
 
         [Console]::CursorVisible = $false
         Show-SelectionMenu -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections
-        Show-SelectionMenuControls -EnterKeyDescription $EnterKeyDescription
+        Show-SelectionMenuControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
         Show-SelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
 
         $key = $host.ui.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -302,6 +319,9 @@ function Show-TableUI
                     $Selections.Value = -not $Selections.Value
                 }
             }
+
+            # Toggle help
+            { ($key.Character -eq $helpKey) -or ($key.Character -eq $helpKeyAlt) } { $helpMinimized = -not $helpMinimized }
 
             # Select all items
             $selectAll { $Selections.Value = $Selections.Value | ForEach-Object { $true } }
