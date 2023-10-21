@@ -15,7 +15,7 @@ underlying operation.
 
 ## Installation
 
-Download/install the module from `PSGallery`:
+Download/install the module from [PSGallery](https://www.powershellgallery.com/packages/TableUI):
 
 ```pwsh
 Install-Module -Name TableUI -Repository PSGallery
@@ -74,6 +74,16 @@ $selections = @()
 $tableData = winget update | ConvertFrom-TextTable
 Show-TableUI -Table $tableData -DefaultMemberToShow Name -Selections ([ref]$selections)
 ```
+
+> [!NOTE]\
+> By default an array of Booleans is assigned to the value specified for
+  `-Selections`. This behavior can be changed to store `Indices` or
+  `Items` via the `-SelectionFormat` parameter. However, please note, that
+  this is a final transformation of the data. While the UI is processing this
+  request the underlying logic always utilizes an array of Booleans. It is
+  only at the conclusion of the operation that this variable is update to
+  the desired form.
+
 
 ![WinGet Example](img/winget-update-ui.png)
 
