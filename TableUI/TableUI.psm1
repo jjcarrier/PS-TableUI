@@ -225,6 +225,8 @@ function Show-TableUI
         Restore-BackgroundColor
     }
 
+    $Selections.Value = $null
+
     if ([string]::IsNullOrWhiteSpace($DefaultMemberToShow)) {
         $DefaultMemberToShow = $Table | Select-Object -First | Get-Member -MemberType NoteProperty | Select-Object -First -Property Name
     }
@@ -237,7 +239,7 @@ function Show-TableUI
     [char]$helpKey = '?'
     [char]$helpKeyAlt = '/'
 
-    $Selections.Value = @($Table) | ForEach-Object { $false }
+    $tempSelections = @($Table) | ForEach-Object { $false }
     [int]$selectionIndex = 0
     [int]$windowStartIndex = 0
     $helpMinimized = $false
@@ -259,9 +261,9 @@ function Show-TableUI
 
         $windowedSelectionItems = @($Table.$DefaultMemberToShow)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
         $windowedSelectionIndex = $selectionIndex - $windowStartIndex
-        $windowedSelections = @($Selections.Value)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
+        $windowedSelections = @($tempSelections)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
         $numItemsToUpgrade = 0
-        $Selections.Value | ForEach-Object { if ($_ -eq $true) { $numItemsToUpgrade++ } }
+        $tempSelections | ForEach-Object { if ($_ -eq $true) { $numItemsToUpgrade++ } }
         $selectionMenuTitle = "$Title (Selected $($numItemsToUpgrade) of $($Table.Count))"
 
         [Console]::CursorVisible = $false
@@ -313,10 +315,10 @@ function Show-TableUI
 
             # Toggle selected item
             { $_ -eq [ConsoleKey]::Spacebar } {
-                if ($Selections.Value.Count -gt 1) {
-                    $Selections.Value[$selectionIndex] = -not $Selections.Value[$selectionIndex]
+                if ($tempSelections.Count -gt 1) {
+                    $tempSelections[$selectionIndex] = -not $tempSelections[$selectionIndex]
                 } else {
-                    $Selections.Value = -not $Selections.Value
+                    $tempSelections = -not $tempSelections
                 }
             }
 
@@ -324,21 +326,21 @@ function Show-TableUI
             { ($key.Character -eq $helpKey) -or ($key.Character -eq $helpKeyAlt) } { $helpMinimized = -not $helpMinimized }
 
             # Select all items
-            $selectAll { $Selections.Value = $Selections.Value | ForEach-Object { $true } }
+            $selectAll { $tempSelections = $tempSelections | ForEach-Object { $true } }
 
             # Deselect all items
-            $selectNone { $Selections.Value = $Selections.Value | ForEach-Object { $false } }
+            $selectNone { $tempSelections = $tempSelections | ForEach-Object { $false } }
 
             # Execute the ENTER script block for the selected item
             { $_ -eq [ConsoleKey]::Enter } {
-                Invoke-Command -ScriptBlock $EnterKeyScript -ArgumentList @(@($Selections.Value), $selectionIndex)
+                Invoke-Command -ScriptBlock $EnterKeyScript -ArgumentList @(@($tempSelections), $selectionIndex)
             }
 
             # Abort operation
             { ($_ -eq [ConsoleKey]::Escape) -or ($_ -eq $quitKey) } {
                 Write-Output "`nAborted."
+                $tempSelections = $null
                 $currentKey = $continue
-                $Selections.Value = $null
             }
         }
 
@@ -349,7 +351,7 @@ function Show-TableUI
         }
     }
 
-    if ($null -eq $Selections.Value) {
+    if ($null -eq $tempSelections) {
         return
     }
 
@@ -357,6 +359,10 @@ function Show-TableUI
 
     switch ($SelectionFormat)
     {
+        { $_ -eq 'Booleans' } {
+            $Selections.Value = $tempSelections
+        }
+
         { $_ -eq 'Indices' } {
             $transformSelectionScript = {
                 param($index, $item, $selected)
@@ -378,7 +384,7 @@ function Show-TableUI
 
     if ($null -ne $transformSelectionScript) {
         $index = 0
-        $Selections.Value = $Selections.Value | ForEach-Object {
+        $Selections.Value = $tempSelections | ForEach-Object {
             Invoke-Command -ScriptBlock $transformSelectionScript -ArgumentList $index, $tableData[$index], $_
             $index++
         }
