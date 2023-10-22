@@ -1,4 +1,8 @@
-[System.ConsoleColor]$DefaultBackgroundColor = $Host.UI.RawUI.BackgroundColor
+# The overall width of the UI.
+[int]$UIWidth = 64
+
+# Frame buffer to mitigate re-draw flicker.
+[string[]]$FrameBuffer = @('')
 
 # Example of a custom script block
 $DummyScriptBlock = {
@@ -51,7 +55,7 @@ function Show-TableUI
 
         # The decription of what the ENTER key does. Should be filled to 60-characters.
         [Parameter()]
-        [string]$EnterKeyDescription = 'Press ENTER to show selection details.                      ',
+        [string]$EnterKeyDescription = 'Press ENTER to show selection details.',
 
         # The script to execute whenn the ENNTER key is pressed. After completion, the screen will be redrawn by the TableUI.
         [Parameter()]
@@ -63,80 +67,128 @@ function Show-TableUI
         [string]$SelectionFormat = 'Booleans'
     )
 
-    <#
-    .DESCRIPTION
-        Restore the UI's background color to the state it was in when the script
-        was called.
-    #>
-    function Restore-BackgroundColor
+    function Clear-Frame
     {
-        $Host.UI.RawUI.BackgroundColor = $script:DefaultBackgroundColor
+        $script:FrameBuffer = @('')
     }
 
-    <#
-    .DESCRIPTION
-        Set the UI background color.
-    #>
-    function Set-BackgroundColor
+    function Show-Frame
     {
-        param (
-            # The background color to apply.
-            [System.ConsoleColor]$BackgroundColor
-        )
-
-        $Host.UI.RawUI.BackgroundColor = $BackgroundColor
+        Clear-Host
+        $script:FrameBuffer | ForEach-Object {
+            Write-Output $_
+        }
     }
 
-    <#
-    .DESCRIPTION
-        Write to standard output with the specified foreground color.
-    #>
-    function Write-ColorOutput
+    function Write-FrameTopBar
     {
         param (
-            # The foreground color to apply.
-            [System.ConsoleColor]$ForegroundColor,
-
-            # Indicates that no new line should be added at the end of the message.
-            [switch]$NoNewLine
+            # The width of the overall UI. The content will take up $Width - 4.
+            [int]$Width = $UIWidth
         )
-        # Save the current color
-        $fc = $host.UI.RawUI.ForegroundColor
 
-        # Set the new color
-        $host.UI.RawUI.ForegroundColor = $ForegroundColor
+        $script:FrameBuffer += "┌$('─' * ($Width - 2))┐"
+    }
 
-        if ($args) {
-            Write-Host -NoNewLine:$NoNewLine $args
+    function Write-FrameMiddleBar
+    {
+        param (
+            # The width of the overall UI. The content will take up $Width - 4.
+            [int]$Width = $UIWidth
+        )
+
+        $script:FrameBuffer += "├$('─' * ($Width - 2))┤"
+    }
+
+    function Write-FrameBottomBar
+    {
+        param (
+            # The width of the overall UI. The content will take up $Width - 4.
+            [int]$Width = $UIWidth
+        )
+
+        $script:FrameBuffer += "└$('─' * ($Width - 2))┘"
+    }
+
+    function Write-FrameContent
+    {
+        param (
+            # The width of the overall UI. The content will take up $Width - 4.
+            [int]$Width = $UIWidth,
+            [string]$Content,
+
+            # ANSI string that is responsible for setting the text styling for
+            # the content. The frame/bars are not affected by this setting.
+            [string]$AnsiiFormat = ''
+        )
+
+        # Account for 4-characters consisting of leading and trailing pipe + space characters
+        if ($Content.Length -gt ($Width - 4)) {
+            # Truncate to fit width (account for additional ellipsis)
+            $Content = "$($Content.Substring(0, $Width - 4 - 1))…"
         } else {
-            $input | Write-Host -NoNewLine:$NoNewLine
+            # Pad the tail to fit $Width
+            $Content = $Content + (' ' * (($Width - 4) - $Content.Length))
         }
 
-        # Restore the original color
-        $host.UI.RawUI.ForegroundColor = $fc
+        if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
+            $script:FrameBuffer += "│ $Content │"
+        } else {
+            $script:FrameBuffer += "│$AnsiiFormat $Content $($PSStyle.Reset)│"
+        }
     }
 
     <#
     .DESCRIPTION
-        Write to standard output with DarkGray background color.
+        Write the frame data for the UI title bar.
     #>
-    function Write-Highlighted
+    function Write-FrameTitle
     {
         param (
-            # The message to display.
-            [string]$Message
+            # The message to show. WIll be automatically truncated if it does
+            # not fit within the contrains set by $UIWidth.
+            [string]$Content,
+
+            # ANSI string that is responsible for setting the text styling for
+            # the content. The frame/bars are not affected by this setting.
+            [string]$AnsiiFormat = ''
         )
 
-        Set-BackgroundColor Blue
-        Write-ColorOutput White $Message
-        Restore-BackgroundColor
+        Write-FrameTopBar
+        if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
+            Write-FrameContent -Content $Content
+        } else {
+            Write-FrameContent -Content "$AnsiFormat$Content$($PSStyle.Reset)"
+        }
+        Write-FrameMiddleBar
     }
 
     <#
     .DESCRIPTION
-        Show the selectable items.
+        Write the frame data for the title of the selected item section.
     #>
-    function Show-SelectionMenu
+    function Write-FrameSelectedItemTitle
+    {
+        param (
+            # The message to show. WIll be automatically truncated if it does
+            # not fit within the contrains set by $Width.
+            [string]$Content,
+
+            # ANSI string that is responsible for setting the text styling for
+            # the content. The frame/bars are not affected by this setting.
+            [string]$AnsiiFormat = ''
+        )
+
+        Write-FrameMiddleBar
+        Write-FrameContent -Content $Content -AnsiiFormat $AnsiiFormat
+        Write-FrameMiddleBar
+    }
+
+    <#
+    .DESCRIPTION
+        Write the frame data for the selectable items.
+    #>
+    function Write-FrameSelectionItems
     {
         param (
             [string]$Title,
@@ -145,31 +197,28 @@ function Show-TableUI
             [bool[]]$Selections
         )
 
-        Clear-Host
-        Write-Output '────────────────────────────────────────────────────────────'
-        Write-Output "$Title"
-        Write-Output '────────────────────────────────────────────────────────────'
+        Write-FrameTitle -Content $Title
 
         for ($i = 0; $i -lt $SelectionItems.Count; $i++)
         {
             $selectedChar = " "
-            if ($Selections[$i]) { $selectedChar = "*" }
-
-            $lineContent = "[$selectedChar]: $($SelectionItems[$i])"
+            if ($Selections[$i]) { $selectedChar = '•' }
 
             if ($i -eq $SelectionIndex) {
-                Write-Highlighted $lineContent
+                $lineContent = "[$selectedChar] $($SelectionItems[$i])"
+                Write-FrameContent -Content $lineContent -AnsiiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
             } else {
-                Write-Output $lineContent
+                $lineContent = " $selectedChar  $($SelectionItems[$i])"
+                Write-FrameContent -Content $lineContent
             }
         }
     }
 
     <#
     .DESCRIPTION
-        Show the currently selected item.
+        Write the frame data for the currently selected item.
     #>
-    function Show-SelectedItem
+    function Write-FrameSelectedItem
     {
         param (
             [PSCustomObject[]]$SelectionItems,
@@ -177,55 +226,58 @@ function Show-TableUI
             [string[]]$MembersToShow
         )
 
-        Write-Output '────────────────────────────────────────────────────────────'
-        Write-Output "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
-        Write-Output '────────────────────────────────────────────────────────────'
+        Write-FrameSelectedItemTitle -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
         if ($null -eq $MembersToShow) {
             $MembersToShow = $SelectionItems[$SelectionIndex] | Get-Member -MemberType NoteProperty | ForEach-Object { $_.$DefaultMemberToShow }
         }
 
         $maxMemberName = ($MembersToShow | Measure-Object -Property Length -Maximum).Maximum + 1
+        # The special formatting characters result in additional non-printable characters that need to be accounted for.
+        $ansiFormat = $PSStyle.Foreground.Green
+        $ansiFormatAlt = $PSStyle.Foreground.BrightBlack
+        $widthCorrection = $ansiFormat.Length + $PSStyle.Reset.Length
         $MembersToShow | ForEach-Object {
             if (-not([string]::IsNullOrWhiteSpace(($SelectionItems[$SelectionIndex].$_)))) {
-                Write-ColorOutput Green -NoNewLine  "$_$(' ' * ($maxMemberName - $_.Length)): "
-                Write-ColorOutput Gray ($SelectionItems[$SelectionIndex].$_ -join ', ')
+                Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormat$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)$($SelectionItems[$SelectionIndex].$_ -join ', ')"
+            } else {
+                Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormatAlt$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)"
             }
         }
+
+        Write-FrameBottomBar
     }
 
     <#
     .DESCRIPTION
-        Show the UI control information.
+        Write the frame data for the user controls.
     #>
-    function Show-SelectionMenuControls
+    function Write-FrameControls
     {
         param (
             # Decription should be filled to 60-characters.
-            [string]$EnterKeyDescription = 'Press ENTER to show selection details.                      ',
+            [string]$EnterKeyDescription,
 
             # When set, only the help key is shown
             [switch]$Minimize
         )
 
-        Write-Output '────────────────────────────────────────────────────────────'
-        Set-BackgroundColor DarkGray
+        Write-FrameMiddleBar
 
         if ($Minimize) {
-            Write-ColorOutput White "Press '?' to show the controls control menu.                "
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
         } else {
-            Write-ColorOutput White 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.       '
-            Write-ColorOutput White $EnterKeyDescription
-            Write-ColorOutput White 'Press SPACE to toggle selection.                            '
-            Write-ColorOutput White "Press 'A' to select all, 'N' to select none.                "
-            Write-ColorOutput White "Press 'C' to finish selections and continue operation.      "
-            Write-ColorOutput White "Press '?' to minimize this control menu.                    "
-            Write-ColorOutput White "Press ESC or 'Q' to quit now and cancel operation.          "
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
+            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
         }
-
-        Restore-BackgroundColor
     }
 
     $Selections.Value = $null
+    $EnterKeyDescription = $EnterKeyDescription.TrimEnd()
 
     if ([string]::IsNullOrWhiteSpace($DefaultMemberToShow)) {
         $DefaultMemberToShow = $Table | Select-Object -First | Get-Member -MemberType NoteProperty | Select-Object -First -Property Name
@@ -244,14 +296,13 @@ function Show-TableUI
     [int]$windowStartIndex = 0
     $helpMinimized = $false
 
-    if ($null -eq $SelectedItemMembersToShow)
-    {
+    if ($null -eq $SelectedItemMembersToShow) {
         $SelectedItemMembersToShow = ($Table[0] | Get-Member -MemberType NoteProperty).Name
     }
 
     while ($currentKey -ne $continue)
     {
-        [int]$numStandardMenuLines = 15 + $SelectedItemMembersToShow.Count # Count is based on 'Show-' calls below
+        [int]$numStandardMenuLines = 17 + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
         if ($helpMinimized) {
             $numStandardMenuLines -= 6
         }
@@ -267,14 +318,15 @@ function Show-TableUI
         $selectionMenuTitle = "$Title (Selected $($numItemsToUpgrade) of $($Table.Count))"
 
         [Console]::CursorVisible = $false
-        Show-SelectionMenu -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections
-        Show-SelectionMenuControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
-        Show-SelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
+        Clear-Frame
+        Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections
+        Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
+        Write-FrameSelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
+        Show-Frame
 
         $key = $host.ui.RawUI.ReadKey('NoEcho,IncludeKeyDown')
         if ($key.ControlKeyState.HasFlag([System.Management.Automation.Host.ControlKeyStates]::LeftCtrlPressed) -or
-            $key.ControlKeyState.HasFlag([System.Management.Automation.Host.ControlKeyStates]::RightCtrlPressed))
-        {
+            $key.ControlKeyState.HasFlag([System.Management.Automation.Host.ControlKeyStates]::RightCtrlPressed)) {
             continue
         }
 
