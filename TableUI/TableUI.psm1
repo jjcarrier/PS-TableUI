@@ -280,7 +280,7 @@ function Show-TableUI
     $EnterKeyDescription = $EnterKeyDescription.TrimEnd()
 
     if ([string]::IsNullOrWhiteSpace($DefaultMemberToShow)) {
-        $DefaultMemberToShow = $Table | Select-Object -First | Get-Member -MemberType NoteProperty | Select-Object -First -Property Name
+        $DefaultMemberToShow = $Table | Select-Object -First 1 | Get-Member -MemberType NoteProperty | Select-Object -First 1 -Property Name
     }
 
     [char]$currentKey = [char]0
@@ -297,7 +297,7 @@ function Show-TableUI
     $helpMinimized = $false
 
     if ($null -eq $SelectedItemMembersToShow) {
-        $SelectedItemMembersToShow = ($Table[0] | Get-Member -MemberType NoteProperty).Name
+        $SelectedItemMembersToShow = $Table | Select-Object -First 1 | Get-Member -MemberType NoteProperty | Select-Object -Property Name
     }
 
     while ($currentKey -ne $continue)
