@@ -53,8 +53,8 @@ $tableData = @(
 This cmdlet works great with `ConvertFrom-` cmdlets, such as `ConvertFrom-Json`
 where the data conveys an array of objects with its fields as `NoteProperties`.
 
-With a valid array of objects the following call can be made, additional parameters such as
-`-SelectedItemMembersToShow` can be added as needed.
+With a valid array of objects the following call can be made, additional
+parameters such as `-SelectedItemMembersToShow` can be added as needed.
 
 ```pwsh
 $selections = @()
@@ -81,7 +81,7 @@ Show-TableUI -Table $tableData -DefaultMemberToShow Name -Selections ([ref]$sele
   `Items` via the `-SelectionFormat` parameter. However, please note, that
   this is a final transformation of the data. While the UI is processing this
   request the underlying logic always utilizes an array of Booleans. It is
-  only at the conclusion of the operation that this variable is update to
+  only at the conclusion of the operation that this variable is updated to
   the desired form.
 
 
@@ -89,11 +89,14 @@ Show-TableUI -Table $tableData -DefaultMemberToShow Name -Selections ([ref]$sele
 
 ## Selection Details Script Block
 
-A custom handler may be defined for the `ENTER` key by specifying the `-EnterKeyScript` parameter.
+A custom handler may be defined for the `ENTER` key by specifying the
+`-EnterKeyScript` parameter.
 
 The assigned script block takes two parameters.
 
-The first parameter is the array indicating the current selections (passed by value).
+The first parameter is the array indicating the current selections (passed by
+value).
 
-The second parameter is the currently selected index. Full access to the currently selected object
-and other selections may be realized with appropriate scoping.
+The second parameter is the currently selected index. Full access to the
+currently selected object and other selections may be realized with appropriate
+scoping.
