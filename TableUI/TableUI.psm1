@@ -278,6 +278,26 @@ function Show-TableUI
 
     <#
     .DESCRIPTION
+        Wrapper to handle setting buffer width depending on OS.
+    #>
+    function Set-BufferWidth
+    {
+        param (
+            [int]$Width
+        )
+
+        if ($IsWindows) {
+            [Console]::BufferWidth = $Width
+        } else {
+            # While this is not equivalent to setting the buffer width,
+            # it still appears to help eliminate unwanted flickering
+            # when the width is smaller than the minimum width.
+            stty cols $Width
+        }
+    }
+
+    <#
+    .DESCRIPTION
         Write the frame data for the user controls.
     #>
     function Write-FrameControls
@@ -367,7 +387,7 @@ function Show-TableUI
         if ($redraw) {
             $redraw = $false
             [Console]::CursorVisible = $false
-            [Console]::BufferWidth = $UIWidth
+            Set-BufferWidth -Width $UIWidth
             Clear-Frame
             Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections
             Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
