@@ -1,5 +1,6 @@
 # The overall width of the UI.
-[int]$UIWidth = 64
+[int]$UIWidth = 80
+[int]$UIWidthMin = 64
 
 # Frame buffer to mitigate re-draw flicker.
 [string[]]$FrameBuffer = @('')
@@ -249,6 +250,34 @@ function Show-TableUI
 
     <#
     .DESCRIPTION
+        Gets the start index for the windows list view.
+    #>
+    function Get-WindowStartIndex {
+        param (
+            [int]$WindowSpan,
+            [int]$SelectionIndex,
+            [int]$SelectionCount
+        )
+
+        # Calculate the ideal start index to center the selection.
+        $windowStartIndex = $SelectionIndex - [Math]::Floor($WindowSpan / 2)
+
+        # Adjust the start index if it's near the start or end of the list.
+        if ($windowStartIndex -lt 0) {
+            $windowStartIndex = 0
+        } elseif ($windowStartIndex + $WindowSpan -gt $SelectionCount) {
+            $windowStartIndex = $SelectionCount - $WindowSpan
+
+            if ($windowStartIndex -lt 0) {
+                $windowStartIndex = 0
+            }
+        }
+
+        return $windowStartIndex
+    }
+
+    <#
+    .DESCRIPTION
         Write the frame data for the user controls.
     #>
     function Write-FrameControls
@@ -283,6 +312,7 @@ function Show-TableUI
         $DefaultMemberToShow = ($Table | Select-Object -First 1 | Get-Member -MemberType NoteProperty | Select-Object -First 1).Name
     }
 
+    $key = New-Object ConsoleKeyInfo
     [char]$currentKey = [char]0
     [char]$selectAll ='a'
     [char]$selectNone ='n'
@@ -300,16 +330,33 @@ function Show-TableUI
         $SelectedItemMembersToShow = ($Table | Select-Object -First 1 | Get-Member -MemberType NoteProperty).Name
     }
 
-    while ($currentKey -ne $continue)
+    [Console]::TreatControlCAsInput = $true
+    [int]$windowedSpan = $Host.UI.RawUI.WindowSize.Height - $numStandardMenuLines
+    $redraw = $true
+    $runLoop = $true
+
+    while ($runLoop)
     {
         [int]$numStandardMenuLines = 17 + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
         if ($helpMinimized) {
             $numStandardMenuLines -= 6
         }
 
-        [int]$windowedSpan = $Host.UI.RawUI.WindowSize.Height - $numStandardMenuLines
-        if ($windowedSpan -le 0) { $windowedSpan = 1 }
+        $UIWidthLast = $UIWidth
+        $windowedSpanLast = $windowedSpan
 
+        $windowDimensions = $Host.UI.RawUI.WindowSize
+        $windowedSpan = $windowDimensions.Height - $numStandardMenuLines
+        if ($windowDimensions.Width -ge $UIWidthMin) {
+            $UIWidth = $windowDimensions.Width
+        } else {
+            $UIWidth = $UIWidthMin
+        }
+
+        if ($windowedSpan -le 0) { $windowedSpan = 1 }
+        if (($windowedSpanLast -ne $windowedSpan) -or ($UIWidthLast -ne $UIWidth) -or ([Console]::BufferWidth -ne $UIWidth)) { $redraw = $true }
+
+        $windowStartIndex = Get-WindowStartIndex -WindowSpan $windowedSpan -SelectionCount $Table.Count -SelectionIndex $selectionIndex
         $windowedSelectionItems = @($Table.$DefaultMemberToShow)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
         $windowedSelectionIndex = $selectionIndex - $windowStartIndex
         $windowedSelections = @($tempSelections)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
@@ -317,20 +364,25 @@ function Show-TableUI
         $tempSelections | ForEach-Object { if ($_ -eq $true) { $numItemsToUpgrade++ } }
         $selectionMenuTitle = "$Title (Selected $($numItemsToUpgrade) of $($Table.Count))"
 
-        [Console]::CursorVisible = $false
-        Clear-Frame
-        Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections
-        Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
-        Write-FrameSelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
-        Show-Frame
+        if ($redraw) {
+            $redraw = $false
+            [Console]::CursorVisible = $false
+            [Console]::BufferWidth = $UIWidth
+            Clear-Frame
+            Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections
+            Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
+            Write-FrameSelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
+            Show-Frame
+        }
 
-        $key = $host.ui.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-        if ($key.ControlKeyState.HasFlag([System.Management.Automation.Host.ControlKeyStates]::LeftCtrlPressed) -or
-            $key.ControlKeyState.HasFlag([System.Management.Automation.Host.ControlKeyStates]::RightCtrlPressed)) {
+        if (-not([Console]::KeyAvailable)) {
+            Start-Sleep -Milliseconds 10
             continue
         }
 
-        $currentKey = [char]$key.VirtualKeyCode
+        $redraw = $true
+        $key = [Console]::ReadKey($true)
+        $currentKey = [char]$key.Key
         switch ($currentKey)
         {
             # Navigate up
@@ -375,7 +427,7 @@ function Show-TableUI
             }
 
             # Toggle help
-            { ($key.Character -eq $helpKey) -or ($key.Character -eq $helpKeyAlt) } { $helpMinimized = -not $helpMinimized }
+            { ($key.KeyChar -eq $helpKey) -or ($key.KeyChar -eq $helpKeyAlt) } { $helpMinimized = -not $helpMinimized }
 
             # Select all items
             $selectAll { $tempSelections = $tempSelections | ForEach-Object { $true } }
@@ -389,17 +441,15 @@ function Show-TableUI
             }
 
             # Abort operation
-            { ($_ -eq [ConsoleKey]::Escape) -or ($_ -eq $quitKey) } {
+            { ($_ -eq [ConsoleKey]::Escape) -or ($_ -eq $quitKey) -or ((($_ -eq $continue) -and ($key.Modifiers -contains [ConsoleModifiers]::Control))) } {
                 Write-Output "`nAborted."
                 $tempSelections = $null
-                $currentKey = $continue
+                $runLoop = $false
             }
-        }
 
-        if ($selectionIndex -lt $windowStartIndex) {
-            $windowStartIndex = $selectionIndex
-        } elseif ($selectionIndex - $windowStartIndex -ge $windowedSpan) {
-            $windowStartIndex = $selectionIndex - $windowedSpan + 1
+            { (($_ -eq $continue) -and ($key.Modifiers -notcontains [ConsoleModifiers]::Control)) } {
+                $runLoop = $false
+            }
         }
     }
 
