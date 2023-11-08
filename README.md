@@ -27,6 +27,10 @@ Add the module to your `$PROFILE`:
 Import-Module TableUI
 ```
 
+> [!NOTE]\
+> This UI uses ANSI escape sequences which may not be supported by all terminals.
+ For Windows installations, the latest version of `Windows Terminal` is recommended.
+
 ## Usage
 
 `Show-TableUI`, it is best suited for working with arrays of `PSCustomObject`.
@@ -83,7 +87,6 @@ Show-TableUI -Table $tableData -DefaultMemberToShow Name -Selections ([ref]$sele
   request the underlying logic always utilizes an array of Booleans. It is
   only at the conclusion of the operation that this variable is updated to
   the desired form.
-
 
 ![WinGet Example](img/winget-update-ui.png)
 
