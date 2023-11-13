@@ -65,7 +65,15 @@ function Show-TableUI
         # Specifies the format that the -Selections should be in. The default is an array of Booleans.
         [Parameter()]
         [ArgumentCompletions('Booleans', 'Indices', 'Items')]
-        [string]$SelectionFormat = 'Booleans'
+        [string]$SelectionFormat = 'Booleans',
+
+        # Specifies how the UI should be sized/fit in the window space.
+        # 'Fill' will draw the UI to fill the viewable space (blank lines will be added at the end of the item selection subwindow to fill the vertical space).
+        # 'FillWidth' will draw the UI to fill the width space (blank lines will not be added at the end of the item selection subwindow to fill the vertical space).
+        # 'FitStandard' will use the standard 80 column width (blank lines will not be added at the end of the item selection subwindow to fill the vertical space).
+        [Parameter()]
+        [ArgumentCompletions('Fill', 'FillWidth', 'Standard')]
+        [string]$UIFit = 'Fill'
     )
 
     function Clear-Frame
@@ -217,11 +225,14 @@ function Show-TableUI
             }
         }
 
-        $padRows = $WindowedSpan - $SelectionItems.Count
-        while ($padRows -gt 0)
+        if ($UIFit -eq 'Fill')
         {
-            Write-FrameContent -Content ''
-            $padRows--
+            $padRows = $WindowedSpan - $SelectionItems.Count
+            while ($padRows -gt 0)
+            {
+                Write-FrameContent -Content ''
+                $padRows--
+            }
         }
     }
 
@@ -401,10 +412,13 @@ function Show-TableUI
 
         $windowDimensions = $Host.UI.RawUI.WindowSize
         $windowedSpan = $windowDimensions.Height - $numStandardMenuLines
-        if ($windowDimensions.Width -ge $UIWidthMin) {
-            $UIWidth = $windowDimensions.Width
-        } else {
-            $UIWidth = $UIWidthMin
+
+        if ($UIFit -eq 'Fill' -or $UIFit -eq 'FillWidth') {
+            if ($windowDimensions.Width -ge $UIWidthMin) {
+                $UIWidth = $windowDimensions.Width
+            } else {
+                $UIWidth = $UIWidthMin
+            }
         }
 
         if ($windowedSpan -le 0) { $windowedSpan = 1 }
