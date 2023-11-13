@@ -116,6 +116,8 @@ function Show-TableUI
         param (
             # The width of the overall UI. The content will take up $Width - 4.
             [int]$Width = $UIWidth,
+
+            # The data to write to the current line.
             [string]$Content,
 
             # ANSI string that is responsible for setting the text styling for
@@ -287,6 +289,10 @@ function Show-TableUI
     <#
     .DESCRIPTION
         Wrapper to handle setting buffer width depending on OS.
+
+    .OUTPUTS
+        $True if the requested width failed, and should be rehandled in another
+        call.
     #>
     function Set-BufferWidth
     {
@@ -294,14 +300,34 @@ function Show-TableUI
             [int]$Width
         )
 
+        $redraw = $False
+
         if ($IsWindows) {
-            [Console]::BufferWidth = $Width
+            $ErrorActionPreferenceBackup = $ErrorActionPreference
+            $ErrorActionPreference = 'SilentlyContinue'
+
+            try {
+                # This may fail if window is widened right before this statement
+                # executes as the buffer width must always be at least the
+                # window width.
+                [Console]::BufferWidth = $Width
+            } catch [System.Management.Automation.SetValueInvocationException] {
+                # Ignore the error and tell the caller to retry after determining
+                # whether the buffer width is still valid for the current window
+                # width.
+                $redraw = $True
+            } finally {
+                $ErrorActionPreference = $ErrorActionPreferenceBackup
+            }
+
         } else {
             # While this is not equivalent to setting the buffer width,
             # it still appears to help eliminate unwanted flickering
             # when the width is smaller than the minimum width.
             stty cols $Width
         }
+
+        return $redraw
     }
 
     <#
@@ -393,7 +419,7 @@ function Show-TableUI
         $selectionMenuTitle = "$Title (Selected $($numItemsToUpgrade) of $($Table.Count))"
 
         if ($redraw) {
-            $redraw = $false
+            $redraw = Set-BufferWidth -Width $UIWidth
             [Console]::CursorVisible = $false
             Clear-Frame
             Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections -WindowedSpan $windowedSpan
