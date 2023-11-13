@@ -195,7 +195,8 @@ function Show-TableUI
             [string]$Title,
             [string[]]$SelectionItems,
             [int]$SelectionIndex,
-            [bool[]]$Selections
+            [bool[]]$Selections,
+            [int]$WindowedSpan
         )
 
         Write-FrameTitle -Content $Title
@@ -212,6 +213,13 @@ function Show-TableUI
                 $lineContent = " $selectedChar  $($SelectionItems[$i])"
                 Write-FrameContent -Content $lineContent
             }
+        }
+
+        $padRows = $WindowedSpan - $SelectionItems.Count
+        while ($padRows -gt 0)
+        {
+            Write-FrameContent -Content ''
+            $padRows--
         }
     }
 
@@ -387,9 +395,8 @@ function Show-TableUI
         if ($redraw) {
             $redraw = $false
             [Console]::CursorVisible = $false
-            Set-BufferWidth -Width $UIWidth
             Clear-Frame
-            Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections
+            Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections -WindowedSpan $windowedSpan
             Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
             Write-FrameSelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
             Show-Frame
