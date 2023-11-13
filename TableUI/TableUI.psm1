@@ -1,6 +1,6 @@
 # The overall width of the UI.
 [int]$UIWidth = 80
-[int]$UIWidthMin = 64
+[int]$UIWidthMin = 54
 
 # Frame buffer to mitigate re-draw flicker.
 [string[]]$FrameBuffer = @('')
