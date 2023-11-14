@@ -20,11 +20,19 @@ $DummyScriptBlock = {
     }
 }
 
+<#
+.DESCRIPTION
+    Clears the frame buffer.
+#>
 function Clear-Frame
 {
     $script:FrameBuffer = @('')
 }
 
+<#
+.DESCRIPTION
+    Writes the frame buffer to output.
+#>
 function Show-Frame
 {
     Clear-Host
@@ -33,6 +41,10 @@ function Show-Frame
     }
 }
 
+<#
+.DESCRIPTION
+    Writes a top-bar to the frame buffer.
+#>
 function Write-FrameTopBar
 {
     param (
@@ -43,6 +55,10 @@ function Write-FrameTopBar
     $script:FrameBuffer += "┌$('─' * ($Width - 2))┐"
 }
 
+<#
+.DESCRIPTION
+    Writes a middle-bar to the frame buffer.
+#>
 function Write-FrameMiddleBar
 {
     param (
@@ -53,6 +69,10 @@ function Write-FrameMiddleBar
     $script:FrameBuffer += "├$('─' * ($Width - 2))┤"
 }
 
+<#
+.DESCRIPTION
+    Writes a bottom-bar to the frame buffer.
+#>
 function Write-FrameBottomBar
 {
     param (
@@ -63,6 +83,10 @@ function Write-FrameBottomBar
     $script:FrameBuffer += "└$('─' * ($Width - 2))┘"
 }
 
+<#
+.DESCRIPTION
+    Writes content to the frame buffer.
+#>
 function Write-FrameContent
 {
     param (
@@ -146,10 +170,19 @@ function Write-FrameSelectedItemTitle
 function Write-FrameSelectionItems
 {
     param (
+        # The title to display.
         [string]$Title,
+
+        # An array of strings to be displayed in the selection region of the UI.
         [string[]]$SelectionItems,
+
+        # The index of the currently highlighted item in the list of selectable items.
         [int]$SelectionIndex,
+
+        # The state of the selections made by the user.
         [bool[]]$Selections,
+
+        # The vertical span (text rows) of the windowed view of the UI.
         [int]$WindowedSpan
     )
 
@@ -187,8 +220,13 @@ function Write-FrameSelectionItems
 function Write-FrameSelectedItem
 {
     param (
+        # An array of objects containing the selectable items.
         [PSCustomObject[]]$SelectionItems,
+
+        # The index of the currently highlighted item in the list of selectable items.
         [int]$SelectionIndex,
+
+        # An array of strings representing the members to show for the currently selected/highlighted item.
         [string[]]$MembersToShow
     )
 
@@ -219,8 +257,13 @@ function Write-FrameSelectedItem
 #>
 function Get-WindowStartIndex {
     param (
+        # The vertical span (text rows) of the windowed view of the UI.
         [int]$WindowSpan,
+
+        # The index of the currently highlighted item in the list of selectable items.
         [int]$SelectionIndex,
+
+        # The total number of items in the selection list.
         [int]$SelectionCount
     )
 
@@ -252,6 +295,7 @@ function Get-WindowStartIndex {
 function Set-BufferWidth
 {
     param (
+        # The width to set the buffer to (in characters).
         [int]$Width
     )
 
