@@ -554,7 +554,7 @@ function Show-TableUI
     if ($null -ne $transformSelectionScript) {
         $index = 0
         $Selections.Value = $tempSelections | ForEach-Object {
-            Invoke-Command -ScriptBlock $transformSelectionScript -ArgumentList $index, $tableData[$index], $_
+            Invoke-Command -ScriptBlock $transformSelectionScript -ArgumentList $index, $Table[$index], $_
             $index++
         }
     }
