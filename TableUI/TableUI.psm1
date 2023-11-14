@@ -20,6 +20,300 @@ $DummyScriptBlock = {
     }
 }
 
+function Clear-Frame
+{
+    $script:FrameBuffer = @('')
+}
+
+function Show-Frame
+{
+    Clear-Host
+    $script:FrameBuffer | ForEach-Object {
+        Write-Output $_
+    }
+}
+
+function Write-FrameTopBar
+{
+    param (
+        # The width of the overall UI. The content will take up $Width - 4.
+        [int]$Width = $UIWidth
+    )
+
+    $script:FrameBuffer += "┌$('─' * ($Width - 2))┐"
+}
+
+function Write-FrameMiddleBar
+{
+    param (
+        # The width of the overall UI. The content will take up $Width - 4.
+        [int]$Width = $UIWidth
+    )
+
+    $script:FrameBuffer += "├$('─' * ($Width - 2))┤"
+}
+
+function Write-FrameBottomBar
+{
+    param (
+        # The width of the overall UI. The content will take up $Width - 4.
+        [int]$Width = $UIWidth
+    )
+
+    $script:FrameBuffer += "└$('─' * ($Width - 2))┘"
+}
+
+function Write-FrameContent
+{
+    param (
+        # The width of the overall UI. The content will take up $Width - 4.
+        [int]$Width = $UIWidth,
+
+        # The data to write to the current line.
+        [string]$Content,
+
+        # ANSI string that is responsible for setting the text styling for
+        # the content. The frame/bars are not affected by this setting.
+        [string]$AnsiiFormat = ''
+    )
+
+    # Account for 4-characters consisting of leading and trailing pipe + space characters
+    if ($Content.Length -gt ($Width - 4)) {
+        # Truncate to fit width (account for additional ellipsis)
+        $Content = "$($Content.Substring(0, $Width - 4 - 1))…"
+    } else {
+        # Pad the tail to fit $Width
+        $Content = $Content + (' ' * (($Width - 4) - $Content.Length))
+    }
+
+    if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
+        $script:FrameBuffer += "│ $Content │"
+    } else {
+        $script:FrameBuffer += "│$AnsiiFormat $Content $($PSStyle.Reset)│"
+    }
+}
+
+<#
+.DESCRIPTION
+    Write the frame data for the UI title bar.
+#>
+function Write-FrameTitle
+{
+    param (
+        # The message to show. WIll be automatically truncated if it does
+        # not fit within the contrains set by $UIWidth.
+        [string]$Content,
+
+        # ANSI string that is responsible for setting the text styling for
+        # the content. The frame/bars are not affected by this setting.
+        [string]$AnsiiFormat = ''
+    )
+
+    Write-FrameTopBar
+    if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
+        Write-FrameContent -Content $Content
+    } else {
+        Write-FrameContent -Content "$AnsiFormat$Content$($PSStyle.Reset)"
+    }
+    Write-FrameMiddleBar
+}
+
+<#
+.DESCRIPTION
+    Write the frame data for the title of the selected item section.
+#>
+function Write-FrameSelectedItemTitle
+{
+    param (
+        # The message to show. WIll be automatically truncated if it does
+        # not fit within the contrains set by $Width.
+        [string]$Content,
+
+        # ANSI string that is responsible for setting the text styling for
+        # the content. The frame/bars are not affected by this setting.
+        [string]$AnsiiFormat = ''
+    )
+
+    Write-FrameMiddleBar
+    Write-FrameContent -Content $Content -AnsiiFormat $AnsiiFormat
+    Write-FrameMiddleBar
+}
+
+<#
+.DESCRIPTION
+    Write the frame data for the selectable items.
+#>
+function Write-FrameSelectionItems
+{
+    param (
+        [string]$Title,
+        [string[]]$SelectionItems,
+        [int]$SelectionIndex,
+        [bool[]]$Selections,
+        [int]$WindowedSpan
+    )
+
+    Write-FrameTitle -Content $Title
+
+    for ($i = 0; $i -lt $SelectionItems.Count; $i++)
+    {
+        $selectedChar = " "
+        if ($Selections[$i]) { $selectedChar = '•' }
+
+        if ($i -eq $SelectionIndex) {
+            $lineContent = "[$selectedChar] $($SelectionItems[$i])"
+            Write-FrameContent -Content $lineContent -AnsiiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
+        } else {
+            $lineContent = " $selectedChar  $($SelectionItems[$i])"
+            Write-FrameContent -Content $lineContent
+        }
+    }
+
+    if ($UIFit -eq 'Fill')
+    {
+        $padRows = $WindowedSpan - $SelectionItems.Count
+        while ($padRows -gt 0)
+        {
+            Write-FrameContent -Content ''
+            $padRows--
+        }
+    }
+}
+
+<#
+.DESCRIPTION
+    Write the frame data for the currently selected item.
+#>
+function Write-FrameSelectedItem
+{
+    param (
+        [PSCustomObject[]]$SelectionItems,
+        [int]$SelectionIndex,
+        [string[]]$MembersToShow
+    )
+
+    Write-FrameSelectedItemTitle -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
+    if ($null -eq $MembersToShow) {
+        $MembersToShow = $SelectionItems[$SelectionIndex] | Get-Member -MemberType NoteProperty | ForEach-Object { $_.$DefaultMemberToShow }
+    }
+
+    $maxMemberName = ($MembersToShow | Measure-Object -Property Length -Maximum).Maximum + 1
+    # The special formatting characters result in additional non-printable characters that need to be accounted for.
+    $ansiFormat = $PSStyle.Foreground.Green
+    $ansiFormatAlt = $PSStyle.Foreground.BrightBlack
+    $widthCorrection = $ansiFormat.Length + $PSStyle.Reset.Length
+    $MembersToShow | ForEach-Object {
+        if (-not([string]::IsNullOrWhiteSpace(($SelectionItems[$SelectionIndex].$_)))) {
+            Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormat$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)$($SelectionItems[$SelectionIndex].$_ -join ', ')"
+        } else {
+            Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormatAlt$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)"
+        }
+    }
+
+    Write-FrameBottomBar
+}
+
+<#
+.DESCRIPTION
+    Gets the start index for the windows list view.
+#>
+function Get-WindowStartIndex {
+    param (
+        [int]$WindowSpan,
+        [int]$SelectionIndex,
+        [int]$SelectionCount
+    )
+
+    # Calculate the ideal start index to center the selection.
+    $windowStartIndex = $SelectionIndex - [Math]::Floor($WindowSpan / 2)
+
+    # Adjust the start index if it's near the start or end of the list.
+    if ($windowStartIndex -lt 0) {
+        $windowStartIndex = 0
+    } elseif ($windowStartIndex + $WindowSpan -gt $SelectionCount) {
+        $windowStartIndex = $SelectionCount - $WindowSpan
+
+        if ($windowStartIndex -lt 0) {
+            $windowStartIndex = 0
+        }
+    }
+
+    return $windowStartIndex
+}
+
+<#
+.DESCRIPTION
+    Wrapper to handle setting buffer width depending on OS.
+
+.OUTPUTS
+    $True if the requested width failed, and should be rehandled in another
+    call.
+#>
+function Set-BufferWidth
+{
+    param (
+        [int]$Width
+    )
+
+    $redraw = $False
+
+    if ($IsWindows) {
+        $ErrorActionPreferenceBackup = $ErrorActionPreference
+        $ErrorActionPreference = 'SilentlyContinue'
+
+        try {
+            # This may fail if window is widened right before this statement
+            # executes as the buffer width must always be at least the
+            # window width.
+            [Console]::BufferWidth = $Width
+        } catch [System.Management.Automation.SetValueInvocationException] {
+            # Ignore the error and tell the caller to retry after determining
+            # whether the buffer width is still valid for the current window
+            # width.
+            $redraw = $True
+        } finally {
+            $ErrorActionPreference = $ErrorActionPreferenceBackup
+        }
+
+    } else {
+        # While this is not equivalent to setting the buffer width,
+        # it still appears to help eliminate unwanted flickering
+        # when the width is smaller than the minimum width.
+        stty cols $Width
+    }
+
+    return $redraw
+}
+
+<#
+.DESCRIPTION
+    Write the frame data for the user controls.
+#>
+function Write-FrameControls
+{
+    param (
+        # Decription should be filled to 60-characters.
+        [string]$EnterKeyDescription,
+
+        # When set, only the help key is shown
+        [switch]$Minimize
+    )
+
+    Write-FrameMiddleBar
+
+    if ($Minimize) {
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
+    } else {
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
+        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
+    }
+}
+
 <#
 .DESCRIPTION
     Shows a user-interface based on an array of objects. This interface allows
@@ -33,7 +327,7 @@ function Show-TableUI
     [CmdletBinding()]
     param (
         # The array of objects that will be presented in the table UI.
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject[]]$Table,
 
         # An array of Booleans indicating which items were selected.
@@ -76,486 +370,205 @@ function Show-TableUI
         [string]$UIFit = 'Fill'
     )
 
-    function Clear-Frame
+    begin
     {
-        $script:FrameBuffer = @('')
+        $TableItems = @()
     }
 
-    function Show-Frame
+    process
     {
-        Clear-Host
-        $script:FrameBuffer | ForEach-Object {
-            Write-Output $_
-        }
+        $TableItems += $Table
     }
 
-    function Write-FrameTopBar
+    end
     {
-        param (
-            # The width of the overall UI. The content will take up $Width - 4.
-            [int]$Width = $UIWidth
-        )
+        $Selections.Value = $null
+        $EnterKeyDescription = $EnterKeyDescription.TrimEnd()
 
-        $script:FrameBuffer += "┌$('─' * ($Width - 2))┐"
-    }
-
-    function Write-FrameMiddleBar
-    {
-        param (
-            # The width of the overall UI. The content will take up $Width - 4.
-            [int]$Width = $UIWidth
-        )
-
-        $script:FrameBuffer += "├$('─' * ($Width - 2))┤"
-    }
-
-    function Write-FrameBottomBar
-    {
-        param (
-            # The width of the overall UI. The content will take up $Width - 4.
-            [int]$Width = $UIWidth
-        )
-
-        $script:FrameBuffer += "└$('─' * ($Width - 2))┘"
-    }
-
-    function Write-FrameContent
-    {
-        param (
-            # The width of the overall UI. The content will take up $Width - 4.
-            [int]$Width = $UIWidth,
-
-            # The data to write to the current line.
-            [string]$Content,
-
-            # ANSI string that is responsible for setting the text styling for
-            # the content. The frame/bars are not affected by this setting.
-            [string]$AnsiiFormat = ''
-        )
-
-        # Account for 4-characters consisting of leading and trailing pipe + space characters
-        if ($Content.Length -gt ($Width - 4)) {
-            # Truncate to fit width (account for additional ellipsis)
-            $Content = "$($Content.Substring(0, $Width - 4 - 1))…"
-        } else {
-            # Pad the tail to fit $Width
-            $Content = $Content + (' ' * (($Width - 4) - $Content.Length))
+        if ([string]::IsNullOrWhiteSpace($DefaultMemberToShow)) {
+            $DefaultMemberToShow = ($TableItems | Select-Object -First 1 | Get-Member -MemberType NoteProperty | Select-Object -First 1).Name
         }
 
-        if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
-            $script:FrameBuffer += "│ $Content │"
-        } else {
-            $script:FrameBuffer += "│$AnsiiFormat $Content $($PSStyle.Reset)│"
-        }
-    }
+        $key = New-Object ConsoleKeyInfo
+        [char]$currentKey = [char]0
+        [char]$selectAll ='a'
+        [char]$selectNone ='n'
+        [char]$continue = 'c'
+        [char]$quitKey = 'q'
+        [char]$helpKey = '?'
+        [char]$helpKeyAlt = '/'
 
-    <#
-    .DESCRIPTION
-        Write the frame data for the UI title bar.
-    #>
-    function Write-FrameTitle
-    {
-        param (
-            # The message to show. WIll be automatically truncated if it does
-            # not fit within the contrains set by $UIWidth.
-            [string]$Content,
+        $tempSelections = @($TableItems) | ForEach-Object { $false }
+        [int]$selectionIndex = 0
+        [int]$windowStartIndex = 0
+        $helpMinimized = $false
 
-            # ANSI string that is responsible for setting the text styling for
-            # the content. The frame/bars are not affected by this setting.
-            [string]$AnsiiFormat = ''
-        )
-
-        Write-FrameTopBar
-        if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
-            Write-FrameContent -Content $Content
-        } else {
-            Write-FrameContent -Content "$AnsiFormat$Content$($PSStyle.Reset)"
-        }
-        Write-FrameMiddleBar
-    }
-
-    <#
-    .DESCRIPTION
-        Write the frame data for the title of the selected item section.
-    #>
-    function Write-FrameSelectedItemTitle
-    {
-        param (
-            # The message to show. WIll be automatically truncated if it does
-            # not fit within the contrains set by $Width.
-            [string]$Content,
-
-            # ANSI string that is responsible for setting the text styling for
-            # the content. The frame/bars are not affected by this setting.
-            [string]$AnsiiFormat = ''
-        )
-
-        Write-FrameMiddleBar
-        Write-FrameContent -Content $Content -AnsiiFormat $AnsiiFormat
-        Write-FrameMiddleBar
-    }
-
-    <#
-    .DESCRIPTION
-        Write the frame data for the selectable items.
-    #>
-    function Write-FrameSelectionItems
-    {
-        param (
-            [string]$Title,
-            [string[]]$SelectionItems,
-            [int]$SelectionIndex,
-            [bool[]]$Selections,
-            [int]$WindowedSpan
-        )
-
-        Write-FrameTitle -Content $Title
-
-        for ($i = 0; $i -lt $SelectionItems.Count; $i++)
-        {
-            $selectedChar = " "
-            if ($Selections[$i]) { $selectedChar = '•' }
-
-            if ($i -eq $SelectionIndex) {
-                $lineContent = "[$selectedChar] $($SelectionItems[$i])"
-                Write-FrameContent -Content $lineContent -AnsiiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
-            } else {
-                $lineContent = " $selectedChar  $($SelectionItems[$i])"
-                Write-FrameContent -Content $lineContent
-            }
+        if ($null -eq $SelectedItemMembersToShow) {
+            $SelectedItemMembersToShow = ($TableItems | Select-Object -First 1 | Get-Member -MemberType NoteProperty).Name
         }
 
-        if ($UIFit -eq 'Fill')
-        {
-            $padRows = $WindowedSpan - $SelectionItems.Count
-            while ($padRows -gt 0)
-            {
-                Write-FrameContent -Content ''
-                $padRows--
-            }
-        }
-    }
-
-    <#
-    .DESCRIPTION
-        Write the frame data for the currently selected item.
-    #>
-    function Write-FrameSelectedItem
-    {
-        param (
-            [PSCustomObject[]]$SelectionItems,
-            [int]$SelectionIndex,
-            [string[]]$MembersToShow
-        )
-
-        Write-FrameSelectedItemTitle -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
-        if ($null -eq $MembersToShow) {
-            $MembersToShow = $SelectionItems[$SelectionIndex] | Get-Member -MemberType NoteProperty | ForEach-Object { $_.$DefaultMemberToShow }
-        }
-
-        $maxMemberName = ($MembersToShow | Measure-Object -Property Length -Maximum).Maximum + 1
-        # The special formatting characters result in additional non-printable characters that need to be accounted for.
-        $ansiFormat = $PSStyle.Foreground.Green
-        $ansiFormatAlt = $PSStyle.Foreground.BrightBlack
-        $widthCorrection = $ansiFormat.Length + $PSStyle.Reset.Length
-        $MembersToShow | ForEach-Object {
-            if (-not([string]::IsNullOrWhiteSpace(($SelectionItems[$SelectionIndex].$_)))) {
-                Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormat$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)$($SelectionItems[$SelectionIndex].$_ -join ', ')"
-            } else {
-                Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormatAlt$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)"
-            }
-        }
-
-        Write-FrameBottomBar
-    }
-
-    <#
-    .DESCRIPTION
-        Gets the start index for the windows list view.
-    #>
-    function Get-WindowStartIndex {
-        param (
-            [int]$WindowSpan,
-            [int]$SelectionIndex,
-            [int]$SelectionCount
-        )
-
-        # Calculate the ideal start index to center the selection.
-        $windowStartIndex = $SelectionIndex - [Math]::Floor($WindowSpan / 2)
-
-        # Adjust the start index if it's near the start or end of the list.
-        if ($windowStartIndex -lt 0) {
-            $windowStartIndex = 0
-        } elseif ($windowStartIndex + $WindowSpan -gt $SelectionCount) {
-            $windowStartIndex = $SelectionCount - $WindowSpan
-
-            if ($windowStartIndex -lt 0) {
-                $windowStartIndex = 0
-            }
-        }
-
-        return $windowStartIndex
-    }
-
-    <#
-    .DESCRIPTION
-        Wrapper to handle setting buffer width depending on OS.
-
-    .OUTPUTS
-        $True if the requested width failed, and should be rehandled in another
-        call.
-    #>
-    function Set-BufferWidth
-    {
-        param (
-            [int]$Width
-        )
-
-        $redraw = $False
-
-        if ($IsWindows) {
-            $ErrorActionPreferenceBackup = $ErrorActionPreference
-            $ErrorActionPreference = 'SilentlyContinue'
-
-            try {
-                # This may fail if window is widened right before this statement
-                # executes as the buffer width must always be at least the
-                # window width.
-                [Console]::BufferWidth = $Width
-            } catch [System.Management.Automation.SetValueInvocationException] {
-                # Ignore the error and tell the caller to retry after determining
-                # whether the buffer width is still valid for the current window
-                # width.
-                $redraw = $True
-            } finally {
-                $ErrorActionPreference = $ErrorActionPreferenceBackup
-            }
-
-        } else {
-            # While this is not equivalent to setting the buffer width,
-            # it still appears to help eliminate unwanted flickering
-            # when the width is smaller than the minimum width.
-            stty cols $Width
-        }
-
-        return $redraw
-    }
-
-    <#
-    .DESCRIPTION
-        Write the frame data for the user controls.
-    #>
-    function Write-FrameControls
-    {
-        param (
-            # Decription should be filled to 60-characters.
-            [string]$EnterKeyDescription,
-
-            # When set, only the help key is shown
-            [switch]$Minimize
-        )
-
-        Write-FrameMiddleBar
-
-        if ($Minimize) {
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
-        } else {
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
-            Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
-        }
-    }
-
-    $Selections.Value = $null
-    $EnterKeyDescription = $EnterKeyDescription.TrimEnd()
-
-    if ([string]::IsNullOrWhiteSpace($DefaultMemberToShow)) {
-        $DefaultMemberToShow = ($Table | Select-Object -First 1 | Get-Member -MemberType NoteProperty | Select-Object -First 1).Name
-    }
-
-    $key = New-Object ConsoleKeyInfo
-    [char]$currentKey = [char]0
-    [char]$selectAll ='a'
-    [char]$selectNone ='n'
-    [char]$continue = 'c'
-    [char]$quitKey = 'q'
-    [char]$helpKey = '?'
-    [char]$helpKeyAlt = '/'
-
-    $tempSelections = @($Table) | ForEach-Object { $false }
-    [int]$selectionIndex = 0
-    [int]$windowStartIndex = 0
-    $helpMinimized = $false
-
-    if ($null -eq $SelectedItemMembersToShow) {
-        $SelectedItemMembersToShow = ($Table | Select-Object -First 1 | Get-Member -MemberType NoteProperty).Name
-    }
-
-    [Console]::TreatControlCAsInput = $true
-    [int]$windowedSpan = $Host.UI.RawUI.WindowSize.Height - $numStandardMenuLines
-    $redraw = $true
-    $runLoop = $true
-
-    while ($runLoop)
-    {
-        [int]$numStandardMenuLines = 17 + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
-        if ($helpMinimized) {
-            $numStandardMenuLines -= 6
-        }
-
-        $UIWidthLast = $UIWidth
-        $windowedSpanLast = $windowedSpan
-
-        $windowDimensions = $Host.UI.RawUI.WindowSize
-        $windowedSpan = $windowDimensions.Height - $numStandardMenuLines
-
-        if ($UIFit -eq 'Fill' -or $UIFit -eq 'FillWidth') {
-            if ($windowDimensions.Width -ge $UIWidthMin) {
-                $UIWidth = $windowDimensions.Width
-            } else {
-                $UIWidth = $UIWidthMin
-            }
-        }
-
-        if ($windowedSpan -le 0) { $windowedSpan = 1 }
-        if (($windowedSpanLast -ne $windowedSpan) -or ($UIWidthLast -ne $UIWidth) -or ([Console]::BufferWidth -ne $UIWidth)) { $redraw = $true }
-
-        $windowStartIndex = Get-WindowStartIndex -WindowSpan $windowedSpan -SelectionCount $Table.Count -SelectionIndex $selectionIndex
-        $windowedSelectionItems = @($Table.$DefaultMemberToShow)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
-        $windowedSelectionIndex = $selectionIndex - $windowStartIndex
-        $windowedSelections = @($tempSelections)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
-        $numItemsToUpgrade = 0
-        $tempSelections | ForEach-Object { if ($_ -eq $true) { $numItemsToUpgrade++ } }
-        $selectionMenuTitle = "$Title (Selected $($numItemsToUpgrade) of $($Table.Count))"
-
-        if ($redraw) {
-            $redraw = Set-BufferWidth -Width $UIWidth
-            [Console]::CursorVisible = $false
-            Clear-Frame
-            Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections -WindowedSpan $windowedSpan
-            Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
-            Write-FrameSelectedItem -SelectionItems $Table -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
-            Show-Frame
-        }
-
-        if (-not([Console]::KeyAvailable)) {
-            Start-Sleep -Milliseconds 10
-            continue
-        }
-
+        [Console]::TreatControlCAsInput = $true
+        [int]$windowedSpan = $Host.UI.RawUI.WindowSize.Height - $numStandardMenuLines
         $redraw = $true
-        $key = [Console]::ReadKey($true)
-        $currentKey = [char]$key.Key
-        switch ($currentKey)
+        $runLoop = $true
+
+        while ($runLoop)
         {
-            # Navigate up
-            { $_ -eq [ConsoleKey]::UpArrow } {
-                if ($selectionIndex -gt 0) {
-                    $selectionIndex--
-                }
+            [int]$numStandardMenuLines = 17 + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
+            if ($helpMinimized) {
+                $numStandardMenuLines -= 6
             }
 
-            # Navigate down
-            { $_ -eq [ConsoleKey]::DownArrow } {
-                if ($selectionIndex -lt $Table.Count - 1) {
-                    $selectionIndex++
-                }
-            }
+            $UIWidthLast = $UIWidth
+            $windowedSpanLast = $windowedSpan
 
-            # Navigate up by one page
-            { $_ -eq [ConsoleKey]::PageUp } {
-                if ($selectionIndex - $windowedSpan -ge 0) {
-                    $selectionIndex -= $windowedSpan
+            $windowDimensions = $Host.UI.RawUI.WindowSize
+            $windowedSpan = $windowDimensions.Height - $numStandardMenuLines
+
+            if ($UIFit -eq 'Fill' -or $UIFit -eq 'FillWidth') {
+                if ($windowDimensions.Width -ge $UIWidthMin) {
+                    $UIWidth = $windowDimensions.Width
                 } else {
-                    $selectionIndex = 0
+                    $UIWidth = $UIWidthMin
                 }
             }
 
-            # Navigate down by one page
-            { $_ -eq [ConsoleKey]::PageDown } {
-                if ($selectionIndex + $windowedSpan -le $Table.Count - 1) {
-                    $selectionIndex += $windowedSpan
-                } else {
-                    $selectionIndex = $Table.Count - 1
+            if ($windowedSpan -le 0) { $windowedSpan = 1 }
+            if (($windowedSpanLast -ne $windowedSpan) -or ($UIWidthLast -ne $UIWidth) -or ([Console]::BufferWidth -ne $UIWidth)) { $redraw = $true }
+
+            $windowStartIndex = Get-WindowStartIndex -WindowSpan $windowedSpan -SelectionCount $TableItems.Count -SelectionIndex $selectionIndex
+            $windowedSelectionItems = @($TableItems.$DefaultMemberToShow)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
+            $windowedSelectionIndex = $selectionIndex - $windowStartIndex
+            $windowedSelections = @($tempSelections)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
+            $numItemsToUpgrade = 0
+            $tempSelections | ForEach-Object { if ($_ -eq $true) { $numItemsToUpgrade++ } }
+            $selectionMenuTitle = "$Title (Selected $($numItemsToUpgrade) of $($TableItems.Count))"
+
+            if ($redraw) {
+                $redraw = Set-BufferWidth -Width $UIWidth
+                [Console]::CursorVisible = $false
+                Clear-Frame
+                Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections -WindowedSpan $windowedSpan
+                Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
+                Write-FrameSelectedItem -SelectionItems $TableItems -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
+                Show-Frame
+            }
+
+            if (-not([Console]::KeyAvailable)) {
+                Start-Sleep -Milliseconds 10
+                continue
+            }
+
+            $redraw = $true
+            $key = [Console]::ReadKey($true)
+            $currentKey = [char]$key.Key
+            switch ($currentKey)
+            {
+                # Navigate up
+                { $_ -eq [ConsoleKey]::UpArrow } {
+                    if ($selectionIndex -gt 0) {
+                        $selectionIndex--
+                    }
                 }
-            }
 
-            # Toggle selected item
-            { $_ -eq [ConsoleKey]::Spacebar } {
-                if ($tempSelections.Count -gt 1) {
-                    $tempSelections[$selectionIndex] = -not $tempSelections[$selectionIndex]
-                } else {
-                    $tempSelections = -not $tempSelections
+                # Navigate down
+                { $_ -eq [ConsoleKey]::DownArrow } {
+                    if ($selectionIndex -lt $TableItems.Count - 1) {
+                        $selectionIndex++
+                    }
                 }
-            }
 
-            # Toggle help
-            { ($key.KeyChar -eq $helpKey) -or ($key.KeyChar -eq $helpKeyAlt) } { $helpMinimized = -not $helpMinimized }
+                # Navigate up by one page
+                { $_ -eq [ConsoleKey]::PageUp } {
+                    if ($selectionIndex - $windowedSpan -ge 0) {
+                        $selectionIndex -= $windowedSpan
+                    } else {
+                        $selectionIndex = 0
+                    }
+                }
 
-            # Select all items
-            $selectAll { $tempSelections = $tempSelections | ForEach-Object { $true } }
+                # Navigate down by one page
+                { $_ -eq [ConsoleKey]::PageDown } {
+                    if ($selectionIndex + $windowedSpan -le $TableItems.Count - 1) {
+                        $selectionIndex += $windowedSpan
+                    } else {
+                        $selectionIndex = $TableItems.Count - 1
+                    }
+                }
 
-            # Deselect all items
-            $selectNone { $tempSelections = $tempSelections | ForEach-Object { $false } }
+                # Toggle selected item
+                { $_ -eq [ConsoleKey]::Spacebar } {
+                    if ($tempSelections.Count -gt 1) {
+                        $tempSelections[$selectionIndex] = -not $tempSelections[$selectionIndex]
+                    } else {
+                        $tempSelections = -not $tempSelections
+                    }
+                }
 
-            # Execute the ENTER script block for the selected item
-            { $_ -eq [ConsoleKey]::Enter } {
-                Invoke-Command -ScriptBlock $EnterKeyScript -ArgumentList @(@($tempSelections), $selectionIndex)
-            }
+                # Toggle help
+                { ($key.KeyChar -eq $helpKey) -or ($key.KeyChar -eq $helpKeyAlt) } { $helpMinimized = -not $helpMinimized }
 
-            # Abort operation
-            { ($_ -eq [ConsoleKey]::Escape) -or ($_ -eq $quitKey) -or ((($_ -eq $continue) -and ($key.Modifiers -contains [ConsoleModifiers]::Control))) } {
-                Write-Output "`nAborted."
-                $tempSelections = $null
-                $runLoop = $false
-            }
+                # Select all items
+                $selectAll { $tempSelections = $tempSelections | ForEach-Object { $true } }
 
-            { (($_ -eq $continue) -and ($key.Modifiers -notcontains [ConsoleModifiers]::Control)) } {
-                $runLoop = $false
+                # Deselect all items
+                $selectNone { $tempSelections = $tempSelections | ForEach-Object { $false } }
+
+                # Execute the ENTER script block for the selected item
+                { $_ -eq [ConsoleKey]::Enter } {
+                    Invoke-Command -ScriptBlock $EnterKeyScript -ArgumentList @(@($tempSelections), $selectionIndex)
+                }
+
+                # Abort operation
+                { ($_ -eq [ConsoleKey]::Escape) -or ($_ -eq $quitKey) -or ((($_ -eq $continue) -and ($key.Modifiers -contains [ConsoleModifiers]::Control))) } {
+                    Write-Output "`nAborted."
+                    $tempSelections = $null
+                    $runLoop = $false
+                }
+
+                { (($_ -eq $continue) -and ($key.Modifiers -notcontains [ConsoleModifiers]::Control)) } {
+                    $runLoop = $false
+                }
             }
         }
-    }
 
-    if ($null -eq $tempSelections) {
-        return
-    }
-
-    $transformSelectionScript = $null
-
-    switch ($SelectionFormat)
-    {
-        { $_ -eq 'Booleans' } {
-            $Selections.Value = $tempSelections
+        if ($null -eq $tempSelections) {
+            return
         }
 
-        { $_ -eq 'Indices' } {
-            $transformSelectionScript = {
-                param($index, $item, $selected)
-                if ($selected) {
-                    $index
+        $transformSelectionScript = $null
+
+        switch ($SelectionFormat)
+        {
+            { $_ -eq 'Booleans' } {
+                $Selections.Value = $tempSelections
+            }
+
+            { $_ -eq 'Indices' } {
+                $transformSelectionScript = {
+                    param($index, $item, $selected)
+                    if ($selected) {
+                        $index
+                    }
+                }
+            }
+
+            { $_ -eq 'Items' } {
+                $transformSelectionScript = {
+                    param($index, $item, $selected)
+                    if ($selected) {
+                        $item
+                    }
                 }
             }
         }
 
-        { $_ -eq 'Items' } {
-            $transformSelectionScript = {
-                param($index, $item, $selected)
-                if ($selected) {
-                    $item
-                }
+        if ($null -ne $transformSelectionScript) {
+            $index = 0
+            $Selections.Value = $tempSelections | ForEach-Object {
+                Invoke-Command -ScriptBlock $transformSelectionScript -ArgumentList $index, $TableItems[$index], $_
+                $index++
             }
-        }
-    }
-
-    if ($null -ne $transformSelectionScript) {
-        $index = 0
-        $Selections.Value = $tempSelections | ForEach-Object {
-            Invoke-Command -ScriptBlock $transformSelectionScript -ArgumentList $index, $Table[$index], $_
-            $index++
         }
     }
 }
