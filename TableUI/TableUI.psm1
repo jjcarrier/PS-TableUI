@@ -188,8 +188,7 @@ function Write-FrameSelectionItems
 
     Write-FrameTitle -Content $Title
 
-    for ($i = 0; $i -lt $SelectionItems.Count; $i++)
-    {
+    for ($i = 0; $i -lt $SelectionItems.Count; $i++) {
         $selectedChar = " "
         if ($Selections[$i]) { $selectedChar = '•' }
 
@@ -202,11 +201,9 @@ function Write-FrameSelectionItems
         }
     }
 
-    if ($UIFit -eq 'Fill')
-    {
+    if ($UIFit -eq 'Fill') {
         $padRows = $WindowedSpan - $SelectionItems.Count
-        while ($padRows -gt 0)
-        {
+        while ($padRows -gt 0) {
             Write-FrameContent -Content ''
             $padRows--
         }
@@ -299,7 +296,7 @@ function Set-BufferWidth
         [int]$Width
     )
 
-    $redraw = $False
+    $redraw = $false
 
     if ($IsWindows) {
         $ErrorActionPreferenceBackup = $ErrorActionPreference
@@ -314,7 +311,7 @@ function Set-BufferWidth
             # Ignore the error and tell the caller to retry after determining
             # whether the buffer width is still valid for the current window
             # width.
-            $redraw = $True
+            $redraw = $true
         } finally {
             $ErrorActionPreference = $ErrorActionPreferenceBackup
         }
