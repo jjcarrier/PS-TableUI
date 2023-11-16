@@ -1,6 +1,6 @@
 @{
     RootModule = 'TableUI.psm1'
-    ModuleVersion = '1.4.0'
+    ModuleVersion = '1.5.0'
     GUID = 'b5eb9ef8-a2ef-40d4-a8d5-46d91ab7060e'
     Author = 'Jon Carrier'
     CompanyName = 'Unknown'
