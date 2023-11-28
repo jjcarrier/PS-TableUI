@@ -85,6 +85,69 @@ function Write-FrameBottomBar
 
 <#
 .DESCRIPTION
+    Writes the top-bar used for column separation to the frame buffer.
+#>
+function Write-FrameColumnTopBar
+{
+    param (
+        # The width of each column's content
+        [int[]]$ColumnWidth
+    )
+
+    $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
+    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
+        $line += '┬'  + ('─' * ($_ + 2))
+    }
+
+    $line += '┤'
+
+    $script:FrameBuffer += $line
+}
+
+<#
+.DESCRIPTION
+    Writes the middle-bar used for column separation to the frame buffer.
+#>
+function Write-FrameColumnMiddleBar
+{
+    param (
+        # The width of each column's content
+        [int[]]$ColumnWidth
+    )
+
+    $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
+    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
+        $line += '┼'  + ('─' * ($_ + 2))
+    }
+
+    $line += '┤'
+
+    $script:FrameBuffer += $line
+}
+
+<#
+.DESCRIPTION
+    Writes the bottom-bar used for column separation to the frame buffer.
+#>
+function Write-FrameColumnBottomBar
+{
+    param (
+        # The width of each column's content
+        [int[]]$ColumnWidth
+    )
+
+    $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
+    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
+        $line += '┴'  + ('─' * ($_ + 2))
+    }
+
+    $line += '┤'
+
+    $script:FrameBuffer += $line
+}
+
+<#
+.DESCRIPTION
     Writes content to the frame buffer.
 #>
 function Write-FrameContent
@@ -139,7 +202,32 @@ function Write-FrameTitle
     } else {
         Write-FrameContent -Content "$AnsiFormat$Content$($PSStyle.Reset)"
     }
-    Write-FrameMiddleBar
+}
+
+function Write-ColumnHeader
+{
+    param (
+        # The widths of each column
+        [int[]]$ColumnWidth,
+
+        # The members to show in the UI.
+        [string[]]$MemberToShow
+    )
+
+    Write-FrameColumnTopBar -ColumnWidth $ColumnWidth
+
+    $line = '│     ' + $MemberToShow[0] + (' ' * ($ColumnWidth[0] - $MemberToShow[0].Length + 1))
+
+    for ($i = 1; $i -lt $ColumnWidth.Count; $i++)
+    {
+        $line += '│ ' + $MemberToShow[$i] + (' ' * ($ColumnWidth[$i] - $MemberToShow[$i].Length + 1))
+    }
+
+    $line += '│'
+
+    $script:FrameBuffer += $line
+
+    Write-FrameColumnMiddleBar -ColumnWidth $ColumnWidth
 }
 
 <#
@@ -165,6 +253,59 @@ function Write-FrameSelectedItemTitle
 
 <#
 .DESCRIPTION
+    Converts a selection item into the content that is to be shown on a single line in the UI's windowed selection.
+    This function factors in the UI width to determine what items in the object to draw.
+#>
+function Get-SelectionItemLineContent
+{
+    param (
+        # The object to render the line content for.
+        [object]$SelectionItem,
+
+        # The member(s) to show in the UI.
+        [string[]]$MemberToShow,
+
+        # The width of each column to show.
+        [int[]]$ColumnWidth,
+
+        # The 3-character string to indicate if the item is the currently focused/highlighted item and whether the item has been selected.
+        [string]$SelectionHeader
+    )
+
+    $columnContent = $SelectionItem.($MemberToShow[0])
+    $colWidth = $ColumnWidth[0]
+
+    if ($columnContent.Length -gt $colWidth) {
+        # Truncate to fit width (account for additional ellipsis)
+        $columnContent = "$($columnContent.Substring(0, $colWidth - 1))…"
+    } else {
+        # Pad the tail to fit $colWidth
+        $columnContent = $columnContent + (' ' * ($colWidth - $columnContent.Length))
+    }
+
+    $lineContent = "$SelectionHeader $columnContent"
+
+    for ($i = 1; $i -lt $ColumnWidth.Count; $i++)
+    {
+        $columnContent = $SelectionItem.($MemberToShow[$i])
+        $colWidth = $ColumnWidth[$i]
+
+        if ($columnContent.Length -gt $colWidth) {
+            # Truncate to fit width (account for additional ellipsis)
+            $columnContent = "$($columnContent.Substring(0, $colWidth - 1))…"
+        } else {
+            # Pad the tail to fit $colWidth
+            $columnContent = $columnContent + (' ' * ($colWidth - $columnContent.Length))
+        }
+
+        $lineContent += " │ $columnContent"
+    }
+
+    return $lineContent
+}
+
+<#
+.DESCRIPTION
     Write the frame data for the selectable items.
 #>
 function Write-FrameSelectionItems
@@ -173,8 +314,11 @@ function Write-FrameSelectionItems
         # The title to display.
         [string]$Title,
 
-        # An array of strings to be displayed in the selection region of the UI.
-        [string[]]$SelectionItems,
+        # An array of objects containing one of more string members to be displayed in the selection region of the UI.
+        [object[]]$SelectionItems,
+
+        # The member(s) to show in the UI. Members are arranged from left to right in the UI.
+        [string[]]$MemberToShow,
 
         # The index of the currently highlighted item in the list of selectable items.
         [int]$SelectionIndex,
@@ -183,31 +327,61 @@ function Write-FrameSelectionItems
         [bool[]]$Selections,
 
         # The vertical span (text rows) of the windowed view of the UI.
-        [int]$WindowedSpan
+        [int]$WindowedSpan,
+
+        # The widths to constrain each column in the UI to. The right most column(s) will be dropped from the display
+        # when it is determined that the contents do not fit. The first column will always be drawn and will be
+        # truncated accordingly. If the first column's width is set to less than the width of the actual content the UI
+        # will permit truncation down to this point before the right most column(s) are dropped from the display.
+        [int[]]$ColumnWidth
     )
 
+    $widths = Get-SelectionListColumnWidth -ColumnWidth $ColumnWidth -TotalWidth $UIWidth
     Write-FrameTitle -Content $Title
+    Write-ColumnHeader -ColumnWidth $widths -MemberToShow $MemberToShow
 
     for ($i = 0; $i -lt $SelectionItems.Count; $i++) {
         $selectedChar = " "
         if ($Selections[$i]) { $selectedChar = '•' }
 
+        $lineContentArgs = @{
+            SelectionItem = $SelectionItems[$i]
+            SelectionHeader = "    "
+            MemberToShow = $MemberToShow
+            ColumnWidth = $widths
+        }
+
         if ($i -eq $SelectionIndex) {
-            $lineContent = "[$selectedChar] $($SelectionItems[$i])"
+            $lineContentArgs.SelectionHeader = "[$selectedChar]"
+            $lineContent = Get-SelectionItemLineContent @lineContentArgs
             Write-FrameContent -Content $lineContent -AnsiiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
         } else {
-            $lineContent = " $selectedChar  $($SelectionItems[$i])"
+            $lineContentArgs.SelectionHeader = " $selectedChar "
+            $lineContent = Get-SelectionItemLineContent @lineContentArgs
             Write-FrameContent -Content $lineContent
         }
     }
 
     if ($UIFit -eq 'Fill') {
         $padRows = $WindowedSpan - $SelectionItems.Count
+        $emptyItem = @{}
+        $MemberToShow | ForEach-Object {
+            $emptyItem | Add-Member -MemberType NoteProperty -Name $_ -Value ''
+        }
+        $lineContentArgs = @{
+            SelectionItem = $emptyItem
+            SelectionHeader = "   "
+            MemberToShow = $MemberToShow
+            ColumnWidth = $widths
+        }
+        $lineContent = Get-SelectionItemLineContent @lineContentArgs
         while ($padRows -gt 0) {
-            Write-FrameContent -Content ''
+            Write-FrameContent -Content $lineContent
             $padRows--
         }
     }
+
+    Write-FrameColumnBottomBar -ColumnWidth $widths
 }
 
 <#
@@ -218,7 +392,7 @@ function Write-FrameSelectedItem
 {
     param (
         # An array of objects containing the selectable items.
-        [PSCustomObject[]]$SelectionItems,
+        [object[]]$SelectionItems,
 
         # The index of the currently highlighted item in the list of selectable items.
         [int]$SelectionIndex,
@@ -228,9 +402,6 @@ function Write-FrameSelectedItem
     )
 
     Write-FrameSelectedItemTitle -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
-    if ($null -eq $MembersToShow) {
-        $MembersToShow = $SelectionItems[$SelectionIndex] | Get-Member -MemberType NoteProperty | ForEach-Object { $_.$DefaultMemberToShow }
-    }
 
     $maxMemberName = ($MembersToShow | Measure-Object -Property Length -Maximum).Maximum + 1
     # The special formatting characters result in additional non-printable characters that need to be accounted for.
@@ -340,8 +511,6 @@ function Write-FrameControls
         [switch]$Minimize
     )
 
-    Write-FrameMiddleBar
-
     if ($Minimize) {
         Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
     } else {
@@ -353,6 +522,89 @@ function Write-FrameControls
         Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
         Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
     }
+}
+
+<#
+.DESCRIPTION
+    Gets the maximum length of each member to be shown in the windowed view.
+#>
+function Get-ItemMaxLength
+{
+    param (
+        # The item(s) to compute the maximum length for the specified members.
+        [object[]]$Item,
+
+        # The name(s) of the member to compute the maximum for.
+        [string[]]$MemberName
+    )
+
+    $columnWidths = @()
+    $MemberName | ForEach-Object {
+        $columnWidths += ($Item.$_ | Measure-Object -Property Length -Maximum).Maximum
+    }
+
+    # Ensure that the column headers (member names) will also fit in this space.
+    for ($i = 0; $i -lt $columnWidths.Count; $i++)
+    {
+        if ($columnWidths[$i] -lt $MemberName[$i].Length) {
+            $columnWidths[$i] = $MemberName[$i].Length
+        }
+    }
+
+    return $columnWidths
+}
+
+<#
+.DESCRIPTION
+    Gets the column width(s) to be used for the windowed selection list. The
+    result depends on -TotalWidth and the values specified in -ColumnWidth.
+    This application will always give display priority to the first column. If
+    subsequent columns do not fit (without truncation), they will be dropped
+    (starting from the tailing column. Truncation on the first column is only
+    enabled when it is determined that other columns will not fit within the
+    width constraint. If all members with within the width constraint and there
+    are additional characters left over, this additional space is to be applied
+    to the first column's width.
+
+.OUTPUTS
+    A list of column widths that each column of data is to be constraind to.
+    The number of elements in this output will always be at least one element
+    and at most "@($MemberToShow).Length" elements.
+#>
+function Get-SelectionListColumnWidth
+{
+    param (
+        # One or more column widths to be used in the windowed list view.
+        [int[]]$ColumnWidth,
+
+        # The total width that the columns are to be constrained to.
+        [int]$TotalWidth
+    )
+
+    $outputColumnWidths = @($ColumnWidth[0])
+    $numAlignChars = 8
+    # Account for the 8 additional characters for spacing (i.e. characters in this string not including CONTENT: "| [*] CONTENT |")
+    $spaceAvailable = $TotalWidth - $numAlignChars
+    if ($ColumnWidth[0] -gt $spaceAvailable) {
+        $outputColumnWidths[0] = $spaceAvailable
+        return $outputColumnWidths
+    }
+
+    $spaceAvailable -= $ColumnWidth[0]
+    $noSpaceRemainding = $false
+    $numAlignChars = 3
+    $ColumnWidth | Select-Object -Last ($ColumnWidth.Count - 1) | ForEach-Object {
+        # Account for the 3 additional characters for spacing  (i.e. characters in this string not including CONTENT: " CONTENT |")
+        if ($noSpaceRemainding -or (($_ + $numAlignChars) -gt $spaceAvailable)) {
+            $noSpaceRemainding = $true
+        } else {
+            $outputColumnWidths += $_
+            $spaceAvailable -= ($_ + $numAlignChars)
+        }
+    }
+
+    $outputColumnWidths[0] += $spaceAvailable
+    return $outputColumnWidths
 }
 
 <#
@@ -380,9 +632,9 @@ function Show-TableUI
         [Parameter()]
         [string]$Title = 'Make Selections',
 
-        # This is the member that will be displayed in the selection list. If not specified, the first NoteProperty member will be used.
+        # The member(s) that will be displayed in the selection list. If not specified, the first NoteProperty member will be used.
         [Parameter()]
-        [string]$DefaultMemberToShow,
+        [string[]]$DefaultMemberToShow,
 
         # These are the members to show when an item is currenlty selected. Order determines arrangement in UI.
         # If not specified, all (NoteProperty) members will be displayed.
@@ -430,6 +682,9 @@ function Show-TableUI
             $DefaultMemberToShow = ($TableItems | Select-Object -First 1 | Get-Member -MemberType NoteProperty | Select-Object -First 1).Name
         }
 
+        $DefaultMemberToShow = @($DefaultMemberToShow)
+        $ColumnWidths = Get-ItemMaxLength -Item $TableItems -MemberName $DefaultMemberToShow
+
         $key = New-Object ConsoleKeyInfo
         [char]$currentKey = [char]0
         [char]$selectAll ='a'
@@ -455,7 +710,7 @@ function Show-TableUI
 
         while ($runLoop)
         {
-            [int]$numStandardMenuLines = 17 + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
+            [int]$numStandardMenuLines = 19 + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
             if ($helpMinimized) {
                 $numStandardMenuLines -= 6
             }
@@ -478,9 +733,9 @@ function Show-TableUI
             if (($windowedSpanLast -ne $windowedSpan) -or ($UIWidthLast -ne $UIWidth) -or ([Console]::BufferWidth -ne $UIWidth)) { $redraw = $true }
 
             $windowStartIndex = Get-WindowStartIndex -WindowSpan $windowedSpan -SelectionCount $TableItems.Count -SelectionIndex $selectionIndex
-            $windowedSelectionItems = @($TableItems.$DefaultMemberToShow)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
+            $windowedSelectionItems = @($TableItems[$windowStartIndex..($windowStartIndex + $windowedSpan - 1)])
             $windowedSelectionIndex = $selectionIndex - $windowStartIndex
-            $windowedSelections = @($tempSelections)[$windowStartIndex..($windowStartIndex+$windowedSpan-1)]
+            $windowedSelections = @($tempSelections)[$windowStartIndex..($windowStartIndex + $windowedSpan - 1)]
             $numItemsToUpgrade = 0
             $tempSelections | ForEach-Object { if ($_ -eq $true) { $numItemsToUpgrade++ } }
             $selectionMenuTitle = "$Title (Selected $($numItemsToUpgrade) of $($TableItems.Count))"
@@ -488,8 +743,18 @@ function Show-TableUI
             if ($redraw) {
                 $redraw = Set-BufferWidth -Width $UIWidth
                 [Console]::CursorVisible = $false
+                $frameSelectionArgs = @{
+                    Title = $selectionMenuTitle
+                    SelectionItems = $windowedSelectionItems
+                    SelectionIndex = $windowedSelectionIndex
+                    Selections = $windowedSelections
+                    WindowedSpan = $windowedSpan
+                    MemberToShow = $DefaultMemberToShow
+                    ColumnWidth = $ColumnWidths
+                }
+
                 Clear-Frame
-                Write-FrameSelectionItems -Title $selectionMenuTitle -SelectionItems $windowedSelectionItems -SelectionIndex $windowedSelectionIndex -Selections $windowedSelections -WindowedSpan $windowedSpan
+                Write-FrameSelectionItems @frameSelectionArgs
                 Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
                 Write-FrameSelectedItem -SelectionItems $TableItems -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
                 Show-Frame
