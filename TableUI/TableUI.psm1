@@ -49,10 +49,17 @@ function Write-FrameTopBar
 {
     param (
         # The width of the overall UI. The content will take up $Width - 4.
-        [int]$Width = $UIWidth
+        [int]$Width = $UIWidth,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    $script:FrameBuffer += "┌$('─' * ($Width - 2))┐"
+    if ($Truncated) {
+        $script:FrameBuffer += "┌$('─' * ($Width - 2))╖"
+    } else {
+        $script:FrameBuffer += "┌$('─' * ($Width - 2))┐"
+    }
 }
 
 <#
@@ -63,10 +70,17 @@ function Write-FrameMiddleBar
 {
     param (
         # The width of the overall UI. The content will take up $Width - 4.
-        [int]$Width = $UIWidth
+        [int]$Width = $UIWidth,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    $script:FrameBuffer += "├$('─' * ($Width - 2))┤"
+    if ($Truncated) {
+        $script:FrameBuffer += "├$('─' * ($Width - 2))╢"
+    } else {
+        $script:FrameBuffer += "├$('─' * ($Width - 2))┤"
+    }
 }
 
 <#
@@ -77,10 +91,17 @@ function Write-FrameBottomBar
 {
     param (
         # The width of the overall UI. The content will take up $Width - 4.
-        [int]$Width = $UIWidth
+        [int]$Width = $UIWidth,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    $script:FrameBuffer += "└$('─' * ($Width - 2))┘"
+    if ($Truncated) {
+        $script:FrameBuffer += "└$('─' * ($Width - 2))╜"
+    } else {
+        $script:FrameBuffer += "└$('─' * ($Width - 2))┘"
+    }
 }
 
 <#
@@ -91,7 +112,10 @@ function Write-FrameColumnTopBar
 {
     param (
         # The width of each column's content
-        [int[]]$ColumnWidth
+        [int[]]$ColumnWidth,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
     $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
@@ -99,7 +123,11 @@ function Write-FrameColumnTopBar
         $line += '┬'  + ('─' * ($_ + 2))
     }
 
-    $line += '┤'
+    if ($Truncated) {
+        $line += '╢'
+    } else {
+        $line += '┤'
+    }
 
     $script:FrameBuffer += $line
 }
@@ -112,7 +140,10 @@ function Write-FrameColumnMiddleBar
 {
     param (
         # The width of each column's content
-        [int[]]$ColumnWidth
+        [int[]]$ColumnWidth,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
     $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
@@ -120,7 +151,11 @@ function Write-FrameColumnMiddleBar
         $line += '┼'  + ('─' * ($_ + 2))
     }
 
-    $line += '┤'
+    if ($Truncated) {
+        $line += '╢'
+    } else {
+        $line += '┤'
+    }
 
     $script:FrameBuffer += $line
 }
@@ -133,7 +168,10 @@ function Write-FrameColumnBottomBar
 {
     param (
         # The width of each column's content
-        [int[]]$ColumnWidth
+        [int[]]$ColumnWidth,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
     $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
@@ -141,7 +179,11 @@ function Write-FrameColumnBottomBar
         $line += '┴'  + ('─' * ($_ + 2))
     }
 
-    $line += '┤'
+    if ($Truncated) {
+        $line += '╢'
+    } else {
+        $line += '┤'
+    }
 
     $script:FrameBuffer += $line
 }
@@ -161,7 +203,10 @@ function Write-FrameContent
 
         # ANSI string that is responsible for setting the text styling for
         # the content. The frame/bars are not affected by this setting.
-        [string]$AnsiiFormat = ''
+        [string]$AnsiiFormat = '',
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
     # Account for 4-characters consisting of leading and trailing pipe + space characters
@@ -173,10 +218,16 @@ function Write-FrameContent
         $Content = $Content + (' ' * (($Width - 4) - $Content.Length))
     }
 
-    if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
-        $script:FrameBuffer += "│ $Content │"
+    if ($Truncated) {
+        $endBar = '║'
     } else {
-        $script:FrameBuffer += "│$AnsiiFormat $Content $($PSStyle.Reset)│"
+        $endBar = '│'
+    }
+
+    if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
+        $script:FrameBuffer += "│ $Content $endBar"
+    } else {
+        $script:FrameBuffer += "│$AnsiiFormat $Content $($PSStyle.Reset)$endBar"
     }
 }
 
@@ -193,17 +244,24 @@ function Write-FrameTitle
 
         # ANSI string that is responsible for setting the text styling for
         # the content. The frame/bars are not affected by this setting.
-        [string]$AnsiiFormat = ''
+        [string]$AnsiiFormat = '',
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    Write-FrameTopBar
+    Write-FrameTopBar -Truncated:$Truncated
     if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
-        Write-FrameContent -Content $Content
+        Write-FrameContent -Truncated:$Truncated -Content $Content
     } else {
-        Write-FrameContent -Content "$AnsiFormat$Content$($PSStyle.Reset)"
+        Write-FrameContent -Truncated:$Truncated -Content "$AnsiFormat$Content$($PSStyle.Reset)"
     }
 }
 
+<#
+.DESCRIPTION
+    Write the frame data for the UI column header(s).
+#>
 function Write-ColumnHeader
 {
     param (
@@ -211,10 +269,13 @@ function Write-ColumnHeader
         [int[]]$ColumnWidth,
 
         # The members to show in the UI.
-        [string[]]$MemberToShow
+        [string[]]$MemberToShow,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    Write-FrameColumnTopBar -ColumnWidth $ColumnWidth
+    Write-FrameColumnTopBar -Truncated:$Truncated -ColumnWidth $ColumnWidth
 
     $line = '│     ' + $MemberToShow[0] + (' ' * ($ColumnWidth[0] - $MemberToShow[0].Length + 1))
 
@@ -223,11 +284,15 @@ function Write-ColumnHeader
         $line += '│ ' + $MemberToShow[$i] + (' ' * ($ColumnWidth[$i] - $MemberToShow[$i].Length + 1))
     }
 
-    $line += '│'
+    if ($Truncated) {
+        $line += '║'
+    } else {
+        $line += '│'
+    }
 
     $script:FrameBuffer += $line
 
-    Write-FrameColumnMiddleBar -ColumnWidth $ColumnWidth
+    Write-FrameColumnMiddleBar -Truncated:$Truncated -ColumnWidth $ColumnWidth
 }
 
 <#
@@ -243,12 +308,15 @@ function Write-FrameSelectedItemTitle
 
         # ANSI string that is responsible for setting the text styling for
         # the content. The frame/bars are not affected by this setting.
-        [string]$AnsiiFormat = ''
+        [string]$AnsiiFormat = '',
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    Write-FrameMiddleBar
-    Write-FrameContent -Content $Content -AnsiiFormat $AnsiiFormat
-    Write-FrameMiddleBar
+    Write-FrameMiddleBar -Truncated:$Truncated
+    Write-FrameContent -Truncated:$Truncated -Content $Content -AnsiiFormat $AnsiiFormat
+    Write-FrameMiddleBar -Truncated:$Truncated
 }
 
 <#
@@ -333,12 +401,14 @@ function Write-FrameSelectionItems
         # when it is determined that the contents do not fit. The first column will always be drawn and will be
         # truncated accordingly. If the first column's width is set to less than the width of the actual content the UI
         # will permit truncation down to this point before the right most column(s) are dropped from the display.
-        [int[]]$ColumnWidth
+        [int[]]$ColumnWidth,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    $widths = Get-SelectionListColumnWidth -ColumnWidth $ColumnWidth -TotalWidth $UIWidth
-    Write-FrameTitle -Content $Title
-    Write-ColumnHeader -ColumnWidth $widths -MemberToShow $MemberToShow
+    Write-FrameTitle -Truncated:$Truncated -Content $Title
+    Write-ColumnHeader -Truncated:$Truncated -ColumnWidth $widths -MemberToShow $MemberToShow
 
     for ($i = 0; $i -lt $SelectionItems.Count; $i++) {
         $selectedChar = " "
@@ -354,11 +424,11 @@ function Write-FrameSelectionItems
         if ($i -eq $SelectionIndex) {
             $lineContentArgs.SelectionHeader = "[$selectedChar]"
             $lineContent = Get-SelectionItemLineContent @lineContentArgs
-            Write-FrameContent -Content $lineContent -AnsiiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
+            Write-FrameContent -Truncated:$Truncated -Content $lineContent -AnsiiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
         } else {
             $lineContentArgs.SelectionHeader = " $selectedChar "
             $lineContent = Get-SelectionItemLineContent @lineContentArgs
-            Write-FrameContent -Content $lineContent
+            Write-FrameContent -Truncated:$Truncated -Content $lineContent
         }
     }
 
@@ -376,12 +446,12 @@ function Write-FrameSelectionItems
         }
         $lineContent = Get-SelectionItemLineContent @lineContentArgs
         while ($padRows -gt 0) {
-            Write-FrameContent -Content $lineContent
+            Write-FrameContent -Truncated:$Truncated -Content $lineContent
             $padRows--
         }
     }
 
-    Write-FrameColumnBottomBar -ColumnWidth $widths
+    Write-FrameColumnBottomBar -Truncated:$Truncated -ColumnWidth $widths
 }
 
 <#
@@ -398,10 +468,13 @@ function Write-FrameSelectedItem
         [int]$SelectionIndex,
 
         # An array of strings representing the members to show for the currently selected/highlighted item.
-        [string[]]$MembersToShow
+        [string[]]$MembersToShow,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
-    Write-FrameSelectedItemTitle -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
+    Write-FrameSelectedItemTitle -Truncated:$Truncated -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
 
     $maxMemberName = ($MembersToShow | Measure-Object -Property Length -Maximum).Maximum + 1
     # The special formatting characters result in additional non-printable characters that need to be accounted for.
@@ -410,13 +483,15 @@ function Write-FrameSelectedItem
     $widthCorrection = $ansiFormat.Length + $PSStyle.Reset.Length
     $MembersToShow | ForEach-Object {
         if (-not([string]::IsNullOrWhiteSpace(($SelectionItems[$SelectionIndex].$_)))) {
-            Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormat$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)$($SelectionItems[$SelectionIndex].$_ -join ', ')"
+            $content = "$ansiFormat$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)$($SelectionItems[$SelectionIndex].$_ -join ', ')"
         } else {
-            Write-FrameContent -Width ($UIWidth + $widthCorrection) -Content "$ansiFormatAlt$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)"
+            $content = "$ansiFormatAlt$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)"
         }
+
+        Write-FrameContent -Truncated:$Truncated -Width ($UIWidth + $widthCorrection) -Content $content
     }
 
-    Write-FrameBottomBar
+    Write-FrameBottomBar -Truncated:$Truncated
 }
 
 <#
@@ -508,19 +583,22 @@ function Write-FrameControls
         [string]$EnterKeyDescription,
 
         # When set, only the help key is shown
-        [switch]$Minimize
+        [switch]$Minimize,
+
+        # Set to indicate that columns have been dropped from the UI.
+        [switch]$Truncated
     )
 
     if ($Minimize) {
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
     } else {
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
-        Write-FrameContent -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
+        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
     }
 }
 
@@ -743,6 +821,8 @@ function Show-TableUI
             if ($redraw) {
                 $redraw = Set-BufferWidth -Width $UIWidth
                 [Console]::CursorVisible = $false
+                $widths = Get-SelectionListColumnWidth -ColumnWidth $ColumnWidths -TotalWidth $UIWidth
+                $truncated = (@($widths).Count -lt @($ColumnWidths).Count)
                 $frameSelectionArgs = @{
                     Title = $selectionMenuTitle
                     SelectionItems = $windowedSelectionItems
@@ -750,13 +830,14 @@ function Show-TableUI
                     Selections = $windowedSelections
                     WindowedSpan = $windowedSpan
                     MemberToShow = $DefaultMemberToShow
-                    ColumnWidth = $ColumnWidths
+                    ColumnWidth = $widths
+                    Truncated = $truncated
                 }
 
                 Clear-Frame
                 Write-FrameSelectionItems @frameSelectionArgs
-                Write-FrameControls -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
-                Write-FrameSelectedItem -SelectionItems $TableItems -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
+                Write-FrameControls -Truncated:$Truncated -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
+                Write-FrameSelectedItem -Truncated:$Truncated -SelectionItems $TableItems -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
                 Show-Frame
             }
 
