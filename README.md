@@ -68,7 +68,13 @@ Show-TableUI -Table $tableData -Selections ([ref]$selections)
 ![Test Example](img/test-ui.png)
 
 Here is an example of interfacing WinGet update with TableUI utilizing
-`ConvertFrom-TextTable` module (also available in PSGallery).
+`ConvertFrom-TextTable` module (also available in PSGallery). This example
+specifies multiple members for `DefaultMemberToShow`. This results in multiple
+columns being rendered in the UI for the associated UI. The first member is
+always given priority, if it cannot fit within the UI, the right-most columns
+will be dropped to make space for it. A visual indicator is used to indicate
+that the table is not showing all columns in the UI (via the use of vertical
+double-bars on the right side of the UI).
 
 ```pwsh
 Install-Module -Name TextTable -Repository PSGallery
@@ -76,7 +82,7 @@ Import-Module TextTable
 
 $selections = @()
 $tableData = winget update | ConvertFrom-TextTable
-Show-TableUI -Table $tableData -DefaultMemberToShow Name -Selections ([ref]$selections)
+$tableData | Show-TableUI -DefaultMemberToShow Name,Available -Selections ([ref]$selections) -Title 'Available Updates'
 ```
 
 > [!NOTE]\
