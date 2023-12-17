@@ -35,11 +35,20 @@ function Clear-Frame
 #>
 function Show-Frame
 {
-    Clear-Host
+    $host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
     $script:FrameBuffer | ForEach-Object {
         Write-Output $_
     }
+
+    $endPosition = $host.UI.RawUI.CursorPosition
+
+    # Clean up re-rendering artifacts cause by window resizing.
+    Write-Host -NoNewline (' ' * $UIWidth)
+    $host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
+    Write-Output (' ' * $UIWidth)
+    $host.UI.RawUI.CursorPosition = $endPosition
 }
+
 
 <#
 .DESCRIPTION
