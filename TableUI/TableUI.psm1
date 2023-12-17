@@ -281,10 +281,17 @@ function Write-ColumnHeader
         [string[]]$MemberToShow,
 
         # Set to indicate that columns have been dropped from the UI.
-        [switch]$Truncated
+        [switch]$Truncated,
+
+        # When set, the column header names will be drawn.
+        [switch]$ShowColumnHeader
     )
 
     Write-FrameColumnTopBar -Truncated:$Truncated -ColumnWidth $ColumnWidth
+
+    if (-not($ShowColumnHeader)) {
+        return
+    }
 
     $line = '│     ' + $MemberToShow[0] + (' ' * ($ColumnWidth[0] - $MemberToShow[0].Length + 1))
 
@@ -413,11 +420,14 @@ function Write-FrameSelectionItems
         [int[]]$ColumnWidth,
 
         # Set to indicate that columns have been dropped from the UI.
-        [switch]$Truncated
+        [switch]$Truncated,
+
+        # When set, the column header names will be drawn.
+        [switch]$ShowColumnHeader
     )
 
     Write-FrameTitle -Truncated:$Truncated -Content $Title
-    Write-ColumnHeader -Truncated:$Truncated -ColumnWidth $widths -MemberToShow $MemberToShow
+    Write-ColumnHeader -Truncated:$Truncated -ColumnWidth $widths -MemberToShow $MemberToShow -ShowColumnHeader:$ShowColumnHeader
 
     for ($i = 0; $i -lt $SelectionItems.Count; $i++) {
         $selectedChar = " "
@@ -747,7 +757,13 @@ function Show-TableUI
         # 'FitStandard' will use the standard 80 column width (blank lines will not be added at the end of the item selection subwindow to fill the vertical space).
         [Parameter()]
         [ArgumentCompletions('Fill', 'FillWidth', 'Standard')]
-        [string]$UIFit = 'Fill'
+        [string]$UIFit = 'Fill',
+
+        # Specifies the rule for when to draw the column header row.
+        # If set to 'Auto' the column header will only be drawn when there is more than one column.
+        [Parameter()]
+        [ArgumentCompletions('Auto', 'Show', 'Hide')]
+        [string]$ColumnHeaderVisiblity = 'Auto'
     )
 
     begin
@@ -771,6 +787,12 @@ function Show-TableUI
 
         $DefaultMemberToShow = @($DefaultMemberToShow)
         $ColumnWidths = Get-ItemMaxLength -Item $TableItems -MemberName $DefaultMemberToShow
+
+        $ShowColumnHeader = (($ColumnHeaderVisiblity -eq 'Show') -or (($ColumnHeaderVisiblity -eq 'Auto') -and ($DefaultMemberToShow.Count -gt 1)))
+        $staticRowCount = 17
+        if ($ShowColumnHeader) {
+            $staticRowCount += 2
+        }
 
         $key = New-Object ConsoleKeyInfo
         [char]$currentKey = [char]0
@@ -797,7 +819,7 @@ function Show-TableUI
 
         while ($runLoop)
         {
-            [int]$numStandardMenuLines = 19 + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
+            [int]$numStandardMenuLines = $staticRowCount + $SelectedItemMembersToShow.Count # Count is based on 'Frame' drawing calls below
             if ($helpMinimized) {
                 $numStandardMenuLines -= 6
             }
@@ -841,6 +863,7 @@ function Show-TableUI
                     MemberToShow = $DefaultMemberToShow
                     ColumnWidth = $widths
                     Truncated = $truncated
+                    ShowColumnHeader = $ShowColumnHeader
                 }
 
                 Clear-Frame
