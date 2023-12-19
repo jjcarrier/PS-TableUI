@@ -356,7 +356,7 @@ function Get-SelectionItemLineContent
         [string]$SelectionHeader
     )
 
-    $columnContent = $SelectionItem.($MemberToShow[0])
+    $columnContent = [string]($SelectionItem.($MemberToShow[0]))
     $colWidth = $ColumnWidth[0]
 
     if ($columnContent.Length -gt $colWidth) {
@@ -371,7 +371,7 @@ function Get-SelectionItemLineContent
 
     for ($i = 1; $i -lt $ColumnWidth.Count; $i++)
     {
-        $columnContent = $SelectionItem.($MemberToShow[$i])
+        $columnContent = [string]($SelectionItem.($MemberToShow[$i]))
         $colWidth = $ColumnWidth[$i]
 
         if ($columnContent.Length -gt $colWidth) {
@@ -637,7 +637,7 @@ function Get-ItemMaxLength
 
     $columnWidths = @()
     $MemberName | ForEach-Object {
-        $columnWidths += ($Item.$_ | Measure-Object -Property Length -Maximum).Maximum
+        $columnWidths += ([string[]]@($Item.$_) | Measure-Object -Property Length -Maximum).Maximum
     }
 
     # Ensure that the column headers (member names) will also fit in this space.
