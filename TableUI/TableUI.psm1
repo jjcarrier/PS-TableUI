@@ -13,9 +13,9 @@ $DummyScriptBlock = {
     Write-Output  "The currently selected index is: $selectedIndex"
     Write-Output "`n[Press ENTER to return.]"
     [Console]::CursorVisible = $false
-    $cursorPos = $host.UI.RawUI.CursorPosition
-    while ($host.ui.RawUI.ReadKey().VirtualKeyCode -ne [ConsoleKey]::Enter) {
-        $host.UI.RawUI.CursorPosition = $cursorPos
+    $cursorPos = $Host.UI.RawUI.CursorPosition
+    while ($Host.ui.RawUI.ReadKey().VirtualKeyCode -ne [ConsoleKey]::Enter) {
+        $Host.UI.RawUI.CursorPosition = $cursorPos
         [Console]::CursorVisible = $false
     }
 }
@@ -35,18 +35,18 @@ function Clear-Frame
 #>
 function Show-Frame
 {
-    $host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
+    $Host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
     $script:FrameBuffer | ForEach-Object {
         Write-Output $_
     }
 
-    $endPosition = $host.UI.RawUI.CursorPosition
+    $endPosition = $Host.UI.RawUI.CursorPosition
 
     # Clean up re-rendering artifacts cause by window resizing.
     Write-Host -NoNewline (' ' * $UIWidth)
-    $host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
+    $Host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
     Write-Output (' ' * $UIWidth)
-    $host.UI.RawUI.CursorPosition = $endPosition
+    $Host.UI.RawUI.CursorPosition = $endPosition
 }
 
 
@@ -212,7 +212,7 @@ function Write-FrameContent
 
         # ANSI string that is responsible for setting the text styling for
         # the content. The frame/bars are not affected by this setting.
-        [string]$AnsiiFormat = '',
+        [string]$AnsiFormat = '',
 
         # Set to indicate that columns have been dropped from the UI.
         [switch]$Truncated
@@ -233,10 +233,10 @@ function Write-FrameContent
         $endBar = '│'
     }
 
-    if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
+    if ([string]::IsNullOrWhiteSpace($AnsiFormat)) {
         $script:FrameBuffer += "│ $Content $endBar"
     } else {
-        $script:FrameBuffer += "│$AnsiiFormat $Content $($PSStyle.Reset)$endBar"
+        $script:FrameBuffer += "│$AnsiFormat $Content $($PSStyle.Reset)$endBar"
     }
 }
 
@@ -253,14 +253,14 @@ function Write-FrameTitle
 
         # ANSI string that is responsible for setting the text styling for
         # the content. The frame/bars are not affected by this setting.
-        [string]$AnsiiFormat = '',
+        [string]$AnsiFormat = '',
 
         # Set to indicate that columns have been dropped from the UI.
         [switch]$Truncated
     )
 
     Write-FrameTopBar -Truncated:$Truncated
-    if ([string]::IsNullOrWhiteSpace($AnsiiFormat)) {
+    if ([string]::IsNullOrWhiteSpace($AnsiFormat)) {
         Write-FrameContent -Truncated:$Truncated -Content $Content
     } else {
         Write-FrameContent -Truncated:$Truncated -Content "$AnsiFormat$Content$($PSStyle.Reset)"
@@ -324,14 +324,14 @@ function Write-FrameSelectedItemTitle
 
         # ANSI string that is responsible for setting the text styling for
         # the content. The frame/bars are not affected by this setting.
-        [string]$AnsiiFormat = '',
+        [string]$AnsiFormat = '',
 
         # Set to indicate that columns have been dropped from the UI.
         [switch]$Truncated
     )
 
     Write-FrameMiddleBar -Truncated:$Truncated
-    Write-FrameContent -Truncated:$Truncated -Content $Content -AnsiiFormat $AnsiiFormat
+    Write-FrameContent -Truncated:$Truncated -Content $Content -AnsiFormat $AnsiFormat
     Write-FrameMiddleBar -Truncated:$Truncated
 }
 
@@ -443,7 +443,7 @@ function Write-FrameSelectionItems
         if ($i -eq $SelectionIndex) {
             $lineContentArgs.SelectionHeader = "[$selectedChar]"
             $lineContent = Get-SelectionItemLineContent @lineContentArgs
-            Write-FrameContent -Truncated:$Truncated -Content $lineContent -AnsiiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
+            Write-FrameContent -Truncated:$Truncated -Content $lineContent -AnsiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
         } else {
             $lineContentArgs.SelectionHeader = " $selectedChar "
             $lineContent = Get-SelectionItemLineContent @lineContentArgs
@@ -609,15 +609,15 @@ function Write-FrameControls
     )
 
     if ($Minimize) {
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
     } else {
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
-        Write-FrameContent -Truncated:$Truncated -AnsiiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
     }
 }
 
