@@ -709,7 +709,7 @@ function Get-SelectionListColumnWidth
     Shows a user-interface based on an array of objects. This interface allows
     a user to select zero or more items from this selection. By default, the
     provided reference is updated with an array of Booleans indicating which
-    items in the array were selected. This format can be change to indicate
+    items in the array were selected. This format can be changed to indicate
     the selected index or item values via the -SelectionFormat option.
 #>
 function Show-TableUI
@@ -754,7 +754,7 @@ function Show-TableUI
         # Specifies how the UI should be sized/fit in the window space.
         # 'Fill' will draw the UI to fill the viewable space (blank lines will be added at the end of the item selection subwindow to fill the vertical space).
         # 'FillWidth' will draw the UI to fill the width space (blank lines will not be added at the end of the item selection subwindow to fill the vertical space).
-        # 'FitStandard' will use the standard 80 column width (blank lines will not be added at the end of the item selection subwindow to fill the vertical space).
+        # 'Standard' will use the standard 80 column width (blank lines will not be added at the end of the item selection subwindow to fill the vertical space).
         [Parameter()]
         [ArgumentCompletions('Fill', 'FillWidth', 'Standard')]
         [string]$UIFit = 'Fill',

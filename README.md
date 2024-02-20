@@ -33,10 +33,10 @@ Import-Module TableUI
 
 ## Usage
 
-`Show-TableUI`, it is best suited for working with arrays of `PSCustomObject`.
-An array of dictionaries is __not suited__ for this cmdlet.
+`Show-TableUI` is __intended__ to be used with arrays of `PSCustomObject`.
+It is __not intended__ to be used with an array of dictionaries.
 
-For example use this form (specifying `[PSCustomObject]`):
+For example __use__ this form (specifying `[PSCustomObject]`):
 
 ```pwsh
 $tableData = @(
@@ -57,18 +57,27 @@ $tableData = @(
 This cmdlet works great with `ConvertFrom-` cmdlets, such as `ConvertFrom-Json`
 where the data conveys an array of objects with its fields as `NoteProperties`.
 
-With a valid array of objects the following call can be made, additional
+Below is an example showing type handling across multiple columns, additional
 parameters such as `-SelectedItemMembersToShow` can be added as needed.
 
 ```pwsh
+$tableData = @(
+  [PSCustomObject]@{Name = 'Example Test Data A'; Version = '1.2.3'; Rev = 1; Latest = $false; Options = @('A', 'B', 'C', 'D', 'E') },
+  [PSCustomObject]@{Name = 'Example Test Data B'; Version = '1.2.4'; Rev = 12; Latest = $false },
+  [PSCustomObject]@{Name = 'Example Test Data C'; Version = '1.2.5'; Rev = 123; Latest = $false; Options = @('B', 'C') },
+  [PSCustomObject]@{Name = 'Example Test Data D'; Version = '1.2.6'; Rev = 1234; Latest = $false },
+  [PSCustomObject]@{Name = 'Example Test Data E'; Version = '1.2.7'; Rev = 12345; Latest = $false },
+  [PSCustomObject]@{Name = 'Example Test Data F'; Version = '1.2.8'; Rev = 123456; Latest = $true }
+)
+
 $selections = @()
-Show-TableUI -Table $tableData -Selections ([ref]$selections)
+Show-TableUI -Table $tableData -Selections ([ref]$selections) -DefaultMemberToShow @('Name', 'Version', 'Rev', 'Latest', 'Options')
 ```
 
 ![Test Example](img/test-ui.png)
 
-Here is an example of interfacing WinGet update with TableUI utilizing
-`ConvertFrom-TextTable` module (also available in PSGallery). This example
+Here is an example of interfacing `winget update` with TableUI utilizing
+`ConvertFrom-TextTable` module (also available in [PSGallery](https://www.powershellgallery.com/packages/TextTable)). This example
 specifies multiple members for `DefaultMemberToShow`. This results in multiple
 columns being rendered in the UI for the associated UI. The first member is
 always given priority, if it cannot fit within the UI, the right-most columns
