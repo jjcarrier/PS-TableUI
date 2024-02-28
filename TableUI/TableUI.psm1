@@ -37,16 +37,8 @@ function Show-Frame
 {
     $Host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
     $script:FrameBuffer | ForEach-Object {
-        Write-Output $_
+        Write-Host -NoNewline $_
     }
-
-    $endPosition = $Host.UI.RawUI.CursorPosition
-
-    # Clean up re-rendering artifacts cause by window resizing.
-    Write-Host -NoNewline (' ' * $UIWidth)
-    $Host.UI.RawUI.CursorPosition = @{ X = 0; Y = 0 }
-    Write-Output (' ' * $UIWidth)
-    $Host.UI.RawUI.CursorPosition = $endPosition
 }
 
 
@@ -65,9 +57,9 @@ function Write-FrameTopBar
     )
 
     if ($Truncated) {
-        $script:FrameBuffer += "┌$('─' * ($Width - 2))╖"
+        $script:FrameBuffer += "┌$('─' * ($Width - 2))╖`n"
     } else {
-        $script:FrameBuffer += "┌$('─' * ($Width - 2))┐"
+        $script:FrameBuffer += "┌$('─' * ($Width - 2))┐`n"
     }
 }
 
@@ -86,9 +78,9 @@ function Write-FrameMiddleBar
     )
 
     if ($Truncated) {
-        $script:FrameBuffer += "├$('─' * ($Width - 2))╢"
+        $script:FrameBuffer += "├$('─' * ($Width - 2))╢`n"
     } else {
-        $script:FrameBuffer += "├$('─' * ($Width - 2))┤"
+        $script:FrameBuffer += "├$('─' * ($Width - 2))┤`n"
     }
 }
 
@@ -138,7 +130,7 @@ function Write-FrameColumnTopBar
         $line += '┤'
     }
 
-    $script:FrameBuffer += $line
+    $script:FrameBuffer += $line + "`n"
 }
 
 <#
@@ -166,7 +158,7 @@ function Write-FrameColumnMiddleBar
         $line += '┤'
     }
 
-    $script:FrameBuffer += $line
+    $script:FrameBuffer += $line + "`n"
 }
 
 <#
@@ -194,7 +186,7 @@ function Write-FrameColumnBottomBar
         $line += '┤'
     }
 
-    $script:FrameBuffer += $line
+    $script:FrameBuffer += $line + "`n"
 }
 
 <#
@@ -234,9 +226,9 @@ function Write-FrameContent
     }
 
     if ([string]::IsNullOrWhiteSpace($AnsiFormat)) {
-        $script:FrameBuffer += "│ $Content $endBar"
+        $script:FrameBuffer += "│ $Content $endBar`n"
     } else {
-        $script:FrameBuffer += "│$AnsiFormat $Content $($PSStyle.Reset)$endBar"
+        $script:FrameBuffer += "│$AnsiFormat $Content $($PSStyle.Reset)$endBar`n"
     }
 }
 
@@ -306,7 +298,7 @@ function Write-ColumnHeader
         $line += '│'
     }
 
-    $script:FrameBuffer += $line
+    $script:FrameBuffer += $line + "`n"
 
     Write-FrameColumnMiddleBar -Truncated:$Truncated -ColumnWidth $ColumnWidth
 }
@@ -789,7 +781,7 @@ function Show-TableUI
         $ColumnWidths = Get-ItemMaxLength -Item $TableItems -MemberName $DefaultMemberToShow
 
         $ShowColumnHeader = (($ColumnHeaderVisiblity -eq 'Show') -or (($ColumnHeaderVisiblity -eq 'Auto') -and ($DefaultMemberToShow.Count -gt 1)))
-        $staticRowCount = 17
+        $staticRowCount = 15
         if ($ShowColumnHeader) {
             $staticRowCount += 2
         }
