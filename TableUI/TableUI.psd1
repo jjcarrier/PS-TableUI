@@ -1,6 +1,6 @@
 @{
     RootModule = 'TableUI.psm1'
-    ModuleVersion = '1.7.1'
+    ModuleVersion = '1.8.0'
     GUID = 'b5eb9ef8-a2ef-40d4-a8d5-46d91ab7060e'
     Author = 'Jon Carrier'
     CompanyName = 'Unknown'
@@ -8,7 +8,7 @@
     Description = 'A simple interface for making selections on an array of PS objects'
 
     # CompatiblePSEditions = @()
-    # PowerShellVersion = ''
+    PowerShellVersion = '6.0'
     # ScriptsToProcess = @()
     # TypesToProcess = @()
     # FormatsToProcess = @()
