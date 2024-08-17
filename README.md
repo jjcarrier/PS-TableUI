@@ -1,6 +1,8 @@
 # TableUI PowerShell Module
 
-![PSGallery](https://img.shields.io/powershellgallery/p/TableUI)
+[![pwsh version](https://img.shields.io/powershellgallery/v/TableUI)](https://www.powershellgallery.com/packages/TableUI)
+[![pwsh platform](https://img.shields.io/powershellgallery/p/TableUI)](https://www.powershellgallery.com/packages/TableUI)
+[![pwsh downloads](https://img.shields.io/powershellgallery/dt/TableUI)](https://www.powershellgallery.com/packages/TableUI)
 
 ## Description
 
