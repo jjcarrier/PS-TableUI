@@ -52,15 +52,26 @@ function Write-FrameTopBar
         # The width of the overall UI. The content will take up $Width - 4.
         [int]$Width = $UIWidth,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    if ($Truncated) {
-        $script:FrameBuffer += "┌$('─' * ($Width - 2))╖`n"
+    if ($Shifted) {
+        $startBar = '╓'
     } else {
-        $script:FrameBuffer += "┌$('─' * ($Width - 2))┐`n"
+        $startBar = '┌'
     }
+
+    if ($Truncated) {
+        $endBar = '╖'
+    } else {
+        $endBar = '┐'
+    }
+
+    $script:FrameBuffer += "$startBar$('─' * ($Width - 2))$endBar`n"
 }
 
 <#
@@ -73,15 +84,26 @@ function Write-FrameMiddleBar
         # The width of the overall UI. The content will take up $Width - 4.
         [int]$Width = $UIWidth,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    if ($Truncated) {
-        $script:FrameBuffer += "├$('─' * ($Width - 2))╢`n"
+    if ($Shifted) {
+        $startBar = '╟'
     } else {
-        $script:FrameBuffer += "├$('─' * ($Width - 2))┤`n"
+        $startBar = '├'
     }
+
+    if ($Truncated) {
+        $endBar = '╢'
+    } else {
+        $endBar = '┤'
+    }
+
+    $script:FrameBuffer += "$startBar$('─' * ($Width - 2))$endBar`n"
 }
 
 <#
@@ -94,15 +116,26 @@ function Write-FrameBottomBar
         # The width of the overall UI. The content will take up $Width - 4.
         [int]$Width = $UIWidth,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    if ($Truncated) {
-        $script:FrameBuffer += "└$('─' * ($Width - 2))╜"
+    if ($Shifted) {
+        $startBar = '╙'
     } else {
-        $script:FrameBuffer += "└$('─' * ($Width - 2))┘"
+        $startBar = '└'
     }
+
+    if ($Truncated) {
+        $endBar = '╜'
+    } else {
+        $endBar = '┘'
+    }
+
+    $script:FrameBuffer += "$startBar$('─' * ($Width - 2))$endBar"
 }
 
 <#
@@ -115,22 +148,31 @@ function Write-FrameColumnTopBar
         # The width of each column's content
         [int[]]$ColumnWidth,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
-    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
-        $line += '┬'  + ('─' * ($_ + 2))
+    if ($Shifted) {
+        $startBar = '╟'
+    } else {
+        $startBar = '├'
     }
 
     if ($Truncated) {
-        $line += '╢'
+        $endBar = '╢'
     } else {
-        $line += '┤'
+        $endBar = '┤'
     }
 
-    $script:FrameBuffer += $line + "`n"
+    $line = $startBar + ('─' * ($ColumnWidth[0] + 6))
+    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
+        $line += '┬' + ('─' * ($_ + 2))
+    }
+
+    $script:FrameBuffer += $line + "$endBar`n"
 }
 
 <#
@@ -143,22 +185,31 @@ function Write-FrameColumnMiddleBar
         # The width of each column's content
         [int[]]$ColumnWidth,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
-    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
-        $line += '┼'  + ('─' * ($_ + 2))
+    if ($Shifted) {
+        $startBar = '╟'
+    } else {
+        $startBar = '├'
     }
 
     if ($Truncated) {
-        $line += '╢'
+        $endBar = '╢'
     } else {
-        $line += '┤'
+        $endBar = '┤'
     }
 
-    $script:FrameBuffer += $line + "`n"
+    $line = $startBar + ('─' * ($ColumnWidth[0] + 6))
+    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
+        $line += '┼' + ('─' * ($_ + 2))
+    }
+
+    $script:FrameBuffer += $line + "$endBar`n"
 }
 
 <#
@@ -171,22 +222,31 @@ function Write-FrameColumnBottomBar
         # The width of each column's content
         [int[]]$ColumnWidth,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    $line = '├'  + ('─' * ($ColumnWidth[0] + 6))
-    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
-        $line += '┴'  + ('─' * ($_ + 2))
+    if ($Shifted) {
+        $startBar = '╟'
+    } else {
+        $startBar = '├'
     }
 
     if ($Truncated) {
-        $line += '╢'
+        $endBar = '╢'
     } else {
-        $line += '┤'
+        $endBar = '┤'
     }
 
-    $script:FrameBuffer += $line + "`n"
+    $line = $startBar + ('─' * ($ColumnWidth[0] + 6))
+    $ColumnWidth | Select-Object -Skip 1| ForEach-Object {
+        $line += '┴' + ('─' * ($_ + 2))
+    }
+
+    $script:FrameBuffer += $line + "$endBar`n"
 }
 
 <#
@@ -206,9 +266,24 @@ function Write-FrameContent
         # the content. The frame/bars are not affected by this setting.
         [string]$AnsiFormat = '',
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
+
+    if ($Shifted) {
+        $startBar = '║'
+    } else {
+        $startBar = '│'
+    }
+
+    if ($Truncated) {
+        $endBar = '║'
+    } else {
+        $endBar = '│'
+    }
 
     # Account for 4-characters consisting of leading and trailing pipe + space characters
     if ($Content.Length -gt ($Width - 4)) {
@@ -219,16 +294,10 @@ function Write-FrameContent
         $Content = $Content + (' ' * (($Width - 4) - $Content.Length))
     }
 
-    if ($Truncated) {
-        $endBar = '║'
-    } else {
-        $endBar = '│'
-    }
-
     if ([string]::IsNullOrWhiteSpace($AnsiFormat)) {
-        $script:FrameBuffer += "│ $Content $endBar`n"
+        $script:FrameBuffer += "$startBar $Content $endBar`n"
     } else {
-        $script:FrameBuffer += "│$AnsiFormat $Content $($PSStyle.Reset)$endBar`n"
+        $script:FrameBuffer += "$startBar$AnsiFormat $Content $($PSStyle.Reset)$endBar`n"
     }
 }
 
@@ -247,15 +316,18 @@ function Write-FrameTitle
         # the content. The frame/bars are not affected by this setting.
         [string]$AnsiFormat = '',
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    Write-FrameTopBar -Truncated:$Truncated
+    Write-FrameTopBar -Truncated:$Truncated -Shifted:$Shifted
     if ([string]::IsNullOrWhiteSpace($AnsiFormat)) {
-        Write-FrameContent -Truncated:$Truncated -Content $Content
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -Content $Content
     } else {
-        Write-FrameContent -Truncated:$Truncated -Content "$AnsiFormat$Content$($PSStyle.Reset)"
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -Content "$AnsiFormat$Content$($PSStyle.Reset)"
     }
 }
 
@@ -272,35 +344,44 @@ function Write-ColumnHeader
         # The members to show in the UI.
         [string[]]$MemberToShow,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated,
 
         # When set, the column header names will be drawn.
         [switch]$ShowColumnHeader
     )
 
-    Write-FrameColumnTopBar -Truncated:$Truncated -ColumnWidth $ColumnWidth
+    Write-FrameColumnTopBar -Truncated:$Truncated -Shifted:$Shifted -ColumnWidth $ColumnWidth
 
     if (-not($ShowColumnHeader)) {
         return
     }
 
-    $line = '│     ' + $MemberToShow[0] + (' ' * ($ColumnWidth[0] - $MemberToShow[0].Length + 1))
+    if ($Shifted) {
+        $startBar = '║     '
+    } else {
+        $startBar = '│     '
+    }
+
+    if ($Truncated) {
+        $endBar = '║'
+    } else {
+        $endBar = '│'
+    }
+
+    $line = $startBar + $MemberToShow[0] + (' ' * ($ColumnWidth[0] - $MemberToShow[0].Length + 1))
 
     for ($i = 1; $i -lt $ColumnWidth.Count; $i++)
     {
         $line += '│ ' + $MemberToShow[$i] + (' ' * ($ColumnWidth[$i] - $MemberToShow[$i].Length + 1))
     }
 
-    if ($Truncated) {
-        $line += '║'
-    } else {
-        $line += '│'
-    }
+    $script:FrameBuffer += $line + "$endBar`n"
 
-    $script:FrameBuffer += $line + "`n"
-
-    Write-FrameColumnMiddleBar -Truncated:$Truncated -ColumnWidth $ColumnWidth
+    Write-FrameColumnMiddleBar -Truncated:$Truncated -Shifted:$Shifted -ColumnWidth $ColumnWidth
 }
 
 <#
@@ -318,13 +399,16 @@ function Write-FrameSelectedItemTitle
         # the content. The frame/bars are not affected by this setting.
         [string]$AnsiFormat = '',
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    Write-FrameMiddleBar -Truncated:$Truncated
-    Write-FrameContent -Truncated:$Truncated -Content $Content -AnsiFormat $AnsiFormat
-    Write-FrameMiddleBar -Truncated:$Truncated
+    Write-FrameMiddleBar -Truncated:$Truncated -Shifted:$Shifted
+    Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -Content $Content -AnsiFormat $AnsiFormat
+    Write-FrameMiddleBar -Truncated:$Truncated -Shifted:$Shifted
 }
 
 <#
@@ -411,15 +495,18 @@ function Write-FrameSelectionItems
         # will permit truncation down to this point before the right most column(s) are dropped from the display.
         [int[]]$ColumnWidth,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated,
 
         # When set, the column header names will be drawn.
         [switch]$ShowColumnHeader
     )
 
-    Write-FrameTitle -Truncated:$Truncated -Content $Title
-    Write-ColumnHeader -Truncated:$Truncated -ColumnWidth $widths -MemberToShow $MemberToShow -ShowColumnHeader:$ShowColumnHeader
+    Write-FrameTitle -Truncated:$Truncated -Shifted:$Shifted -Content $Title
+    Write-ColumnHeader -Truncated:$Truncated -Shifted:$Shifted -ColumnWidth $widths -MemberToShow $MemberToShow -ShowColumnHeader:$ShowColumnHeader
 
     for ($i = 0; $i -lt $SelectionItems.Count; $i++) {
         $selectedChar = " "
@@ -435,11 +522,11 @@ function Write-FrameSelectionItems
         if ($i -eq $SelectionIndex) {
             $lineContentArgs.SelectionHeader = "[$selectedChar]"
             $lineContent = Get-SelectionItemLineContent @lineContentArgs
-            Write-FrameContent -Truncated:$Truncated -Content $lineContent -AnsiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
+            Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -Content $lineContent -AnsiFormat "$($PSStyle.Background.BrightBlue)$($PSStyle.Foreground.BrightWhite)"
         } else {
             $lineContentArgs.SelectionHeader = " $selectedChar "
             $lineContent = Get-SelectionItemLineContent @lineContentArgs
-            Write-FrameContent -Truncated:$Truncated -Content $lineContent
+            Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -Content $lineContent
         }
     }
 
@@ -457,12 +544,12 @@ function Write-FrameSelectionItems
         }
         $lineContent = Get-SelectionItemLineContent @lineContentArgs
         while ($padRows -gt 0) {
-            Write-FrameContent -Truncated:$Truncated -Content $lineContent
+            Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -Content $lineContent
             $padRows--
         }
     }
 
-    Write-FrameColumnBottomBar -Truncated:$Truncated -ColumnWidth $widths
+    Write-FrameColumnBottomBar -Truncated:$Truncated -Shifted:$Shifted -ColumnWidth $widths
 }
 
 <#
@@ -481,11 +568,14 @@ function Write-FrameSelectedItem
         # An array of strings representing the members to show for the currently selected/highlighted item.
         [string[]]$MembersToShow,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
-    Write-FrameSelectedItemTitle -Truncated:$Truncated -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
+    Write-FrameSelectedItemTitle -Truncated:$Truncated -Shifted:$Shifted -Content "Current Selection ($($selectionIndex+1) of $($SelectionItems.Count))"
 
     $maxMemberName = ($MembersToShow | Measure-Object -Property Length -Maximum).Maximum + 1
     # The special formatting characters result in additional non-printable characters that need to be accounted for.
@@ -499,10 +589,10 @@ function Write-FrameSelectedItem
             $content = "$ansiFormatAlt$_$(' ' * ($maxMemberName - $_.Length)): $($PSStyle.Reset)"
         }
 
-        Write-FrameContent -Truncated:$Truncated -Width ($UIWidth + $widthCorrection) -Content $content
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -Width ($UIWidth + $widthCorrection) -Content $content
     }
 
-    Write-FrameBottomBar -Truncated:$Truncated
+    Write-FrameBottomBar -Truncated:$Truncated -Shifted:$Shifted
 }
 
 <#
@@ -596,20 +686,23 @@ function Write-FrameControls
         # When set, only the help key is shown
         [switch]$Minimize,
 
-        # Set to indicate that columns have been dropped from the UI.
+        # Set to indicate that (left-most) columns have been dropped from the UI.
+        [switch]$Shifted,
+
+        # Set to indicate that (right-most) columns have been dropped from the UI.
         [switch]$Truncated
     )
 
     if ($Minimize) {
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
     } else {
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press ARROW/PAGE keys to navigate.'
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press ARROW/PAGE keys to navigate.'
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'C' to finish selections and continue operation."
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to minimize the controls menu."
+        Write-FrameContent -Truncated:$Truncated -Shifted:$Shifted -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press ESC or 'Q' to quit now and cancel operation."
     }
 }
 
@@ -849,6 +942,7 @@ function Show-TableUI
                 $shiftedColumnWidths = $columnWidths | Select-Object -Skip $startingColumnIndex
                 $widths = Get-SelectionListColumnWidth -ColumnWidth $shiftedColumnWidths -TotalWidth $UIWidth
                 $truncated = (@($widths).Count -lt @($shiftedColumnWidths).Count)
+                $shifted = $startingColumnIndex -ne 0
                 $frameSelectionArgs = @{
                     Title = $selectionMenuTitle
                     SelectionItems = $windowedSelectionItems
@@ -858,13 +952,14 @@ function Show-TableUI
                     MemberToShow = ($DefaultMemberToShow | Select-Object -Skip $startingColumnIndex)
                     ColumnWidth = $widths
                     Truncated = $truncated
+                    Shifted = $shifted
                     ShowColumnHeader = $ShowColumnHeader
                 }
 
                 Clear-Frame
                 Write-FrameSelectionItems @frameSelectionArgs
-                Write-FrameControls -Truncated:$Truncated -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
-                Write-FrameSelectedItem -Truncated:$Truncated -SelectionItems $TableItems -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
+                Write-FrameControls -Truncated:$truncated -Shifted:$shifted -EnterKeyDescription $EnterKeyDescription -Minimize:$helpMinimized
+                Write-FrameSelectedItem -Truncated:$truncated -Shifted:$shifted -SelectionItems $TableItems -SelectionIndex $selectionIndex -MembersToShow $SelectedItemMembersToShow
                 Show-Frame
             }
 
