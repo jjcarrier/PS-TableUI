@@ -649,7 +649,7 @@ function Get-ItemMaxLength
     result depends on -TotalWidth and the values specified in -ColumnWidth.
     This application will always give display priority to the first column. If
     subsequent columns do not fit (without truncation), they will be dropped
-    (starting from the tailing column. Truncation on the first column is only
+    starting from the tailing column. Truncation on the first column is only
     enabled when it is determined that other columns will not fit within the
     width constraint. If all members with within the width constraint and there
     are additional characters left over, this additional space is to be applied
@@ -725,7 +725,7 @@ function Show-TableUI
         [Parameter()]
         [string[]]$DefaultMemberToShow,
 
-        # These are the members to show when an item is currenlty selected. Order determines arrangement in UI.
+        # These are the members to show when an item is currently selected. Order determines arrangement in UI.
         # If not specified, all (NoteProperty) members will be displayed.
         [Parameter()]
         [string[]]$SelectedItemMembersToShow = $null,
