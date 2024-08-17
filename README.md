@@ -64,16 +64,16 @@ parameters such as `-SelectedItemMembersToShow` can be added as needed.
 
 ```pwsh
 $tableData = @(
-  [PSCustomObject]@{Name = 'Example Test Data A'; Version = '1.2.3'; Rev = 1; Latest = $false; Options = @('A', 'B', 'C', 'D', 'E') },
-  [PSCustomObject]@{Name = 'Example Test Data B'; Version = '1.2.4'; Rev = 12; Latest = $false },
-  [PSCustomObject]@{Name = 'Example Test Data C'; Version = '1.2.5'; Rev = 123; Latest = $false; Options = @('B', 'C') },
-  [PSCustomObject]@{Name = 'Example Test Data D'; Version = '1.2.6'; Rev = 1234; Latest = $false },
-  [PSCustomObject]@{Name = 'Example Test Data E'; Version = '1.2.7'; Rev = 12345; Latest = $false },
-  [PSCustomObject]@{Name = 'Example Test Data F'; Version = '1.2.8'; Rev = 123456; Latest = $true }
+  [PSCustomObject]@{Name = 'Example Test Data A'; Version = '1.2.3'; Date = [DateTime]::Now; Guid = (New-Guid); Rev = 1; Latest = $false; Options = @('A', 'B', 'C', 'D', 'E') },
+  [PSCustomObject]@{Name = 'Example Test Data B'; Version = '1.2.4'; Date = [DateTime]::Now; Guid = (New-Guid); Rev = 12; Latest = $false },
+  [PSCustomObject]@{Name = 'Example Test Data C'; Version = '1.2.5'; Date = [DateTime]::Now; Guid = (New-Guid); Rev = 123; Latest = $false; Options = @('B', 'C') },
+  [PSCustomObject]@{Name = 'Example Test Data D'; Version = '1.2.6'; Date = [DateTime]::Now; Guid = (New-Guid); Rev = 1234; Latest = $false },
+  [PSCustomObject]@{Name = 'Example Test Data E'; Version = '1.2.7'; Date = [DateTime]::Now; Guid = (New-Guid); Rev = 12345; Latest = $false },
+  [PSCustomObject]@{Name = 'Example Test Data F'; Version = '1.2.8'; Date = [DateTime]::Now; Guid = (New-Guid); Rev = 123456; Latest = $true }
 )
 
 $selections = @()
-Show-TableUI -Table $tableData -Selections ([ref]$selections) -DefaultMemberToShow @('Name', 'Version', 'Rev', 'Latest', 'Options')
+Show-TableUI -Table $tableData -Selections ([ref]$selections) -DefaultMemberToShow @('Name', 'Version', 'Rev', 'Latest', 'Options', 'Guid', 'Date')
 ```
 
 ![Test Example](img/test-ui.png)
