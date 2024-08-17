@@ -603,7 +603,7 @@ function Write-FrameControls
     if ($Minimize) {
         Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press '?' to show the controls menu."
     } else {
-        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press (PAGE) UP or (PAGE) DOWN to navigate selection.'
+        Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press ARROW/PAGE keys to navigate.'
         Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content $EnterKeyDescription
         Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content 'Press SPACE to toggle selection.'
         Write-FrameContent -Truncated:$Truncated -AnsiFormat "$($PSStyle.Background.BrightBlack)" -Content "Press 'A' to select all, 'N' to select none."
@@ -778,7 +778,8 @@ function Show-TableUI
         }
 
         $DefaultMemberToShow = @($DefaultMemberToShow)
-        $ColumnWidths = Get-ItemMaxLength -Item $TableItems -MemberName $DefaultMemberToShow
+        $columnWidths = Get-ItemMaxLength -Item $TableItems -MemberName $DefaultMemberToShow
+        $shiftedColumnWidths = $columnWidths
 
         $ShowColumnHeader = (($ColumnHeaderVisiblity -eq 'Show') -or (($ColumnHeaderVisiblity -eq 'Auto') -and ($DefaultMemberToShow.Count -gt 1)))
         $staticRowCount = 15
@@ -798,6 +799,7 @@ function Show-TableUI
         $tempSelections = @($TableItems) | ForEach-Object { $false }
         [int]$selectionIndex = 0
         [int]$windowStartIndex = 0
+        [int]$startingColumnIndex = 0
         $helpMinimized = $false
 
         if ($null -eq $SelectedItemMembersToShow) {
@@ -844,15 +846,16 @@ function Show-TableUI
             if ($redraw) {
                 $redraw = Set-BufferWidth -Width $UIWidth
                 [Console]::CursorVisible = $false
-                $widths = Get-SelectionListColumnWidth -ColumnWidth $ColumnWidths -TotalWidth $UIWidth
-                $truncated = (@($widths).Count -lt @($ColumnWidths).Count)
+                $shiftedColumnWidths = $columnWidths | Select-Object -Skip $startingColumnIndex
+                $widths = Get-SelectionListColumnWidth -ColumnWidth $shiftedColumnWidths -TotalWidth $UIWidth
+                $truncated = (@($widths).Count -lt @($shiftedColumnWidths).Count)
                 $frameSelectionArgs = @{
                     Title = $selectionMenuTitle
                     SelectionItems = $windowedSelectionItems
                     SelectionIndex = $windowedSelectionIndex
                     Selections = $windowedSelections
                     WindowedSpan = $windowedSpan
-                    MemberToShow = $DefaultMemberToShow
+                    MemberToShow = ($DefaultMemberToShow | Select-Object -Skip $startingColumnIndex)
                     ColumnWidth = $widths
                     Truncated = $truncated
                     ShowColumnHeader = $ShowColumnHeader
@@ -888,6 +891,21 @@ function Show-TableUI
                         $selectionIndex++
                     }
                 }
+
+                # Navigate Left
+                { $_ -eq [ConsoleKey]::LeftArrow } {
+                    if ($startingColumnIndex -gt 0) {
+                        $startingColumnIndex--
+                    }
+                }
+
+                # Navigate Right
+                { $_ -eq [ConsoleKey]::RightArrow } {
+                    if ($startingColumnIndex -lt $DefaultMemberToShow.Count - 1) {
+                        $startingColumnIndex++
+                    }
+                }
+
 
                 # Navigate up by one page
                 { $_ -eq [ConsoleKey]::PageUp } {
