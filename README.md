@@ -10,7 +10,7 @@ This is a simple, no frills UI that accepts an array of objects and displays
 each entry in an interactive list where the user can make selections for an
 underlying operation.
 
-> [!NOTE]\
+> [!NOTE]
 > The original scope of this tool was to provide a simple UI for selecting what
  upgradable packages to install for `winget update` but has been expanded on
  to be more general purpose. There is likely room for improvement.
@@ -29,7 +29,7 @@ Add the module to your `$PROFILE`:
 Import-Module TableUI
 ```
 
-> [!NOTE]\
+> [!NOTE]
 > This UI uses ANSI escape sequences which may not be supported by all terminals.
  For Windows installations, the latest version of `Windows Terminal` is recommended.
 
@@ -79,13 +79,13 @@ Show-TableUI -Table $tableData -Selections ([ref]$selections) -DefaultMemberToSh
 ![Test Example](img/test-ui.png)
 
 Here is an example of interfacing `winget update` with TableUI utilizing
-`ConvertFrom-TextTable` module (also available in [PSGallery](https://www.powershellgallery.com/packages/TextTable)). This example
-specifies multiple members for `DefaultMemberToShow`. This results in multiple
-columns being rendered in the UI for the associated UI. The first member is
-always given priority, if it cannot fit within the UI, the right-most columns
-will be dropped to make space for it. A visual indicator is used to indicate
-that the table is not showing all columns in the UI (via the use of vertical
-double-bars on the right side of the UI).
+`ConvertFrom-TextTable` module (also available in [PSGallery](https://www.powershellgallery.com/packages/TextTable)).
+This example specifies multiple members for `DefaultMemberToShow`. This results
+in multiple columns being rendered in the UI for the associated UI. The first
+member is always given priority, if it cannot fit within the UI, the right-most
+columns will be dropped to make space for it. A visual indicator is used to
+indicate that the table is not showing all columns in the UI (via the use of
+vertical double-bars on the right side of the UI).
 
 ```pwsh
 Install-Module -Name TextTable -Repository PSGallery
@@ -96,7 +96,7 @@ $tableData = winget update | ConvertFrom-TextTable
 $tableData | Show-TableUI -DefaultMemberToShow Name,Available -Selections ([ref]$selections) -Title 'Available Updates'
 ```
 
-> [!NOTE]\
+> [!NOTE]
 > By default an array of Booleans is assigned to the value specified for
   `-Selections`. This behavior can be changed to store `Indices` or
   `Items` via the `-SelectionFormat` parameter. However, please note, that
