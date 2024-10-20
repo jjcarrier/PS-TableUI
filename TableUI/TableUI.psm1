@@ -893,7 +893,7 @@ function Show-TableUI
         [int]$selectionIndex = 0
         [int]$windowStartIndex = 0
         [int]$startingColumnIndex = 0
-        $helpMinimized = $false
+        $helpMinimized = $true
 
         if ($null -eq $SelectedItemMembersToShow) {
             $SelectedItemMembersToShow = ($TableItems | Select-Object -First 1 | Get-Member -MemberType NoteProperty).Name
